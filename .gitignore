@@ -1,0 +1,8 @@
+
+#build directories
+
+cmake-build-debug/
+
+#Other files
+
+CMakeUserPresets.json
