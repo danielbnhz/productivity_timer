@@ -1,14 +1,11 @@
 #include <QApplication>
-#include <QLabel>
+#include <QPushButton>
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
-    QApplication app(argc, argv);
-
-    QLabel label("Hello world again!");
-
-    label.resize(800,800);
-    label.show();
-
-    return app.exec();
+    QApplication a(argc, argv);
+    QPushButton button("Hello world!", nullptr);
+    button.resize(800, 800);
+    button.show();
+    return QApplication::exec();
 }
