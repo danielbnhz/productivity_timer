@@ -14,7 +14,11 @@ find_package(Qt6 COMPONENTS
         Widgets
         REQUIRED)
 
-add_executable(productivity_timer main.cpp)
+add_executable(productivity_timer main.cpp
+        src/model/timer.cpp
+        src/model/timer.h
+        src/view/timer_view.cpp
+        src/view/timer_view.h)
 target_link_libraries(productivity_timer
         Qt::Core
         Qt::Gui

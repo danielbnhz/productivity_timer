@@ -1,0 +1,8 @@
+//
+// deals with gui logic
+//
+
+#ifndef PRODUCTIVITY_TIMER_TIMER_VIEW_H
+#define PRODUCTIVITY_TIMER_TIMER_VIEW_H
+
+#endif //PRODUCTIVITY_TIMER_TIMER_VIEW_H

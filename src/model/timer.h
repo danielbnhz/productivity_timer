@@ -1,0 +1,8 @@
+//
+// the model header
+//
+
+#ifndef PRODUCTIVITY_TIMER_TIMER_H
+#define PRODUCTIVITY_TIMER_TIMER_H
+
+#endif //PRODUCTIVITY_TIMER_TIMER_H
