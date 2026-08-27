@@ -3,12 +3,37 @@
 //
 
 #include "timer.h"
-
+#include <QElapsedTimer>
+#include <string>
 
 namespace productivity_timer
 {
     class Timer
     {
-        //To be formulated
+        QElapsedTimer timer;
+        qint64 ms;
+        std::string task_name;
+        bool completed;
+
+    public:
+
+        Timer();
+
+
+
+        void start_timer(qint64 ms){
+
+            timer.start();
+
+            while (!timer.hasExpired(ms))
+            {
+                slowOperation1();
+            }
+    };
+        void stop_timer();
+        bool is_done();
+
+
+
     };
 }
