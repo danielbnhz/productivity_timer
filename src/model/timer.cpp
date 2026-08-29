@@ -5,7 +5,7 @@
 #include "timer.h"
 #include <QElapsedTimer>
 #include <string>
-
+QT_BEGIN_NAMESPACE
 namespace productivity_timer
 {
     class Timer
@@ -37,3 +37,4 @@ namespace productivity_timer
 
     };
 }
+QT_END_NAMESPACE

@@ -1,11 +1,11 @@
 #include <QApplication>
 #include <QPushButton>
-
+#include "src/view/timer_view.h"
 int main(int argc, char* argv[])
 {
     QApplication a(argc, argv);
-    QPushButton button("Hello world!", nullptr);
-    button.resize(800, 800);
-    button.show();
+
+    Timer_View t;
+    t.show();
     return QApplication::exec();
 }
