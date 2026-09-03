@@ -11,11 +11,13 @@
 
 class Timer_View : public QMainWindow
 {
-    Q_OBJECT
-    Private:
-        QLabel* m_timer_label;
-        QPushButton* m_start_button;
-        QPushButton* m_stop_button;
+        Q_OBJECT
+    private:
+        QLabel *m_timer_label = nullptr;
+        QPushButton* m_start_button = nullptr;
+        QPushButton* m_stop_button = nullptr;
+        QPushButton* m_pause_button = nullptr;
+
 
 
     public:
@@ -23,12 +25,15 @@ class Timer_View : public QMainWindow
 
         void set_time_text(const QString& text);
 
+        Timer_View(QWidget *parent = nullptr)
+        {
+            m_timer_label = new QLabel(this);
+            m_start_button = new QPushButton(this);
+            m_stop_button = new QPushButton(this);
+            m_pause_button = new QPushButton(this);
 
-    explicit Timer_View(QWidget* parent)
-        : QWidget(parent)
-        , m_timer_label(new QLabel("25:00", this))
-        , m_start_button(new QPushButton("Start", this))
-        , m_stop_button(new QPushButton("Stop", this))
+        }
+
 
 };
 
