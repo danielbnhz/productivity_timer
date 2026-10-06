@@ -1,0 +1,15 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "local-mingw-qt-debug",
+      "displayName": "Local Qt 6.11.2 MinGW Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/cmake-build-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_PREFIX_PATH": "G:/Qt/6.11.2/mingw_64"
+      }
+    }
+  ]
+}
