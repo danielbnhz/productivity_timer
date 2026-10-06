@@ -2,67 +2,193 @@
 
 A C++20 / Qt 6 productivity timer for tracking focused work and understanding how time is spent.
 
-The project starts as a desktop application, with an eventual Android version and optional remote backups. The initial priority is a reliable, understandable timer—not a large feature set.
+The project starts as a local-first desktop application, with an eventual Android version and optional remote backups. Its priorities reflect the developer’s own business, career, and maintenance needs—not universal judgments about the value of activities.
 
-## Status
+## Status and goals
 
-Early prototype / architecture scaffold. Not yet a working productivity timer.
+### Verified functionality
 
-The current source includes an application entry point, a Qt Widgets view scaffold, and an unfinished timer implementation. The most recent reported commit is `writes some of the core architecture of the timer`.
+The desktop countdown works, and the SQLite database structure has been created and inspected.
 
-Known issues in the shared snapshot:
+- Display a countdown, normally configured for 25 minutes.
+- Start, pause, resume, and reset the countdown.
+- Exclude paused time from the countdown.
+- Stop at zero and display session completion.
+- Start a new countdown after completion.
+- Keep the interface responsive while running.
+- Calculate remaining time from elapsed-time measurements rather than counting refresh callbacks.
+- Detect and load the `QSQLITE` driver.
+- Open an application-owned SQLite database.
+- Create the `task_archetypes`, `tasks`, and `sessions` tables.
+- Read and report the number of saved sessions.
 
-- `Timer_View` is declared in its header and defined again as a class in its implementation file; the implementation should instead define the header's declared member functions.
-- The view constructor declared in the header does not have a matching out-of-class implementation in the shared source.
-- Buttons and the timer label have no initial text, layout, or connected behavior.
-- The timer implementation contains an unfinished blocking loop and an undefined `slowOperation1()` placeholder.
-- `timer.h` has not been reviewed, so the complete model interface and build status remain unverified.
+The countdown was tested with a five-second duration. The database was inspected through the SQLite command-line shell, confirming all three tables and the session schema.
 
-Do not treat the current snapshot as a verified build.
+### Not implemented yet
 
-## Goals
+- Creating and editing archetypes and tasks through repository methods or the interface.
+- Selecting a task for a timed session.
+- Saving completed sessions.
+- Displaying session history or focused-time totals.
+- Scheduling behavior, priority-based task lists, or reminders.
+- Duration-dependent productivity scoring.
+- Recovery of unfinished sessions after closing or crashing.
+- Android deployment and background completion.
+- Remote backups.
 
-### First working version
+**A completed countdown currently does not create a database record.** The timer and database initialization work, but session insertion has not been connected.
 
-- Display a configurable countdown, initially 25 minutes.
-- Start, pause, resume, and reset a session.
-- Stop at zero and report completion once.
-- Keep the interface responsive while the countdown runs.
-- Calculate remaining time from measured elapsed time rather than counting display refreshes.
-- Keep timer state and rules separate from presentation.
+Recorded focus time measures time spent. It does not prove work quality, output, or attention.
 
-### Later milestones
+### Next milestone
 
-- Associate sessions with task names.
-- Store completed sessions locally and show focused-time totals.
-- Define how stopped, interrupted, and paused sessions contribute to totals.
-- Support Android with a mobile-appropriate interface.
-- Handle Android background completion, screen-off behavior, and state restoration explicitly.
-- Add optional backups to a website/backend service.
+Create an archetype and a task, select that task, and save one completed five-second session.
 
-Recorded focus time is a measure of time spent, not proof of work quality or output.
+The implementation must:
 
-## Design
+1. Capture the timestamp when a new session begins.
+2. Preserve that timestamp through pause/resume.
+3. Capture the task’s effective priority at session start.
+4. Save the completed session through the repository.
+5. Report save success or the actual database error.
+6. Verify that the record persists after restarting the app.
 
-Intended responsibilities:
+For the initial accounting policy:
 
-- **Timer core:** session state, duration, pause/resume behavior, and remaining-time calculations.
-- **View:** display and user controls; no ownership of countdown rules.
-- **Controller/integration:** connect user commands, timer updates, persistence, and platform behavior as needed.
-- **Persistence:** local session records, introduced after the basic timer works.
-- **Backup integration:** optional export/upload behavior, separate from timer execution.
+- Paused time does not count.
+- Reset discards the unfinished session.
+- Closing the app discards the unfinished session.
+- Interrupted-session recovery is deferred.
 
-C++ is chosen for hands-on systems development, explicit control, and a reusable native backend. It does not by itself guarantee timing accuracy or hard real-time execution.
+## Design and priorities
 
-Qt's `QElapsedTimer` measures elapsed time; `QTimer` can schedule interface refreshes. Refresh callbacks can arrive late, so callback count must not be the authoritative elapsed-time measurement. Mobile suspend/restart behavior needs additional platform-aware design.
+### Responsibilities
 
-Documentation:
+- **Timer model:** countdown state, duration, pause/resume behavior, and remaining-time calculations.
+- **View:** display and controls; no ownership of countdown rules or SQL.
+- **Controller/integration:** currently the connections in `main.cpp`; coordinates user requests and model updates.
+- **Persistence:** `SessionRepository` opens the database, initializes the schema, and queries records.
+- **Backup integration:** future optional export/upload behavior, separate from timer execution.
 
-- [QElapsedTimer](https://doc.qt.io/qt-6/qelapsedtimer.html)
-- [QTimer](https://doc.qt.io/qt-6/qtimer.html)
-- [Qt for Android](https://doc.qt.io/qt-6/android.html)
+The application uses an MVC-inspired separation without requiring a separate controller class yet.
 
-## Source layout
+Current countdown flow:
+
+```text
+Button click
+    → view emits a request
+    → application connection invokes a model method
+    → model updates state
+    → model emits an update
+    → view refreshes the display
+```
+
+C++ is chosen for hands-on development, explicit control, and a reusable native backend. It does not by itself guarantee timing accuracy or hard real-time execution.
+
+`QElapsedTimer` measures elapsed time. `QTimer` schedules interface refreshes. Callback count is not the authoritative elapsed-time measurement.
+
+System sleep, mobile suspension, process termination, and persistent timer recovery require additional design and testing.
+
+### Priority scale
+
+The current implementation uses integer priorities from **0 through 4**:
+
+| Value | Meaning |
+|---|---|
+| 0 | Leisure / nonproductive by default |
+| 1 | Low priority |
+| 2 | Normal priority |
+| 3 | High priority |
+| 4 | Emergency / needs attention ASAP |
+
+These classifications reflect Daniel’s personal business, career, and maintenance priorities. They are not universal judgments about the worth of activities, professions, or people.
+
+Intended examples—not automatically inserted database records:
+
+- Music: default priority 1.
+- Programming: default priority 2.
+- Exercise: default priority 2.
+- An assignment approaching its deadline: task override 3.
+- An emergency: task override 4.
+- A paid music commission: explicit task override when appropriate.
+
+Each task belongs to one archetype and may override its default priority:
+
+```text
+Effective priority =
+    task override, when present
+    otherwise archetype default
+```
+
+An explicit override of 0 is valid. An absent override is represented by `NULL`.
+
+Scheduling a task does not automatically increase its priority.
+
+Sessions store an effective-priority snapshot so later priority changes do not silently reclassify previously recorded time.
+
+Priority-based ranking and snapshot capture are planned behavior; the schema supports them, but application integration is not implemented yet.
+
+### Deferred scoring
+
+Priority determines scheduling importance. It is not automatically a multiplier for productive minutes.
+
+Future reporting may apply configurable duration-dependent scoring—for example, diminishing returns or a peaked curve for exercise and chores.
+
+These formulas are deferred until task creation and session recording work. Actual durations should remain available alongside any calculated score.
+
+A proposed chores priority of 2.5 is **not supported by the current integer scale**. Fractional priorities or separate scoring weights require an explicit design and schema change.
+
+Programming is not assumed to provide unlimited real-world benefit simply because more time is recorded.
+
+## Database and source layout
+
+### Database structure
+
+```text
+Task archetype
+    → many tasks
+        → many recorded sessions
+```
+
+| Table | Main fields |
+|---|---|
+| `task_archetypes` | Name, default priority, archived flag |
+| `tasks` | Archetype reference, title, optional priority override, optional scheduled timestamp, status, creation timestamp |
+| `sessions` | Task reference, start/end timestamps, planned duration, focused duration, priority snapshot |
+
+Durations are stored as integer milliseconds. Minutes are calculated for display.
+
+Timestamps are intended to be UTC text values using a consistent format when insertion is implemented.
+
+The repository enables and verifies SQLite foreign-key enforcement before creating tables. Table creation is grouped in a transaction.
+
+Archiving is preferred to deleting tasks and archetypes that have historical records. Foreign keys restrict deletion of referenced records.
+
+### Database location
+
+The application uses:
+
+```cpp
+QStandardPaths::AppLocalDataLocation
+```
+
+with:
+
+```text
+Organization: DanielHernandez
+Application: ProductivityTimer
+Database: productivity-v1.sqlite
+```
+
+The exact database path is printed at startup. It is outside the source and build directories.
+
+Keep the organization and application names consistent once real records are stored.
+
+The `productivity-v1.sqlite` filename separates the current three-table design from the earlier experimental `productivity.sqlite` database. The earlier file is not deleted or migrated.
+
+`CREATE TABLE IF NOT EXISTS` does not update an existing table definition. Future schema changes require migrations or an explicitly chosen reset of disposable development data.
+
+### Source layout
 
 ```text
 main.cpp
@@ -74,52 +200,145 @@ src/
   view/
     timer_view.h
     timer_view.cpp
+  persistence/
+    session_repository.h
+    session_repository.cpp
 ```
 
-`main.cpp` constructs the Qt application, shows `Timer_View`, and starts the application event loop.
+`main.cpp` creates the application, initializes the repository, constructs the timer and view, connects their signals and methods, and starts the event loop.
 
-## Build and run
+## Build and verification
 
-Current CMake configuration requires:
+### Requirements
 
 - CMake 3.30 or newer.
 - A C++20-capable compiler compatible with the installed Qt kit.
-- Qt 6 Core, Gui, and Widgets.
+- Qt 6 Core, Gui, Widgets, and Sql.
+- The `QSQLITE` driver plugin.
 
-The previous IDE build directory is unknown. In CLion, inspect the active CMake profile's build-directory setting rather than assuming its location.
+The currently tested environment is Windows with CLion, a MinGW toolchain, and Qt 6.11.2.
 
-Example configuration from the repository root, using a new build directory:
+Current local build directory:
+
+```text
+G:\Program_File_Folder\cplusplus\productivity_timer\cmake-build-debug
+```
+
+This is a developer-specific path, not a required project location.
+
+### Build
+
+After changing `CMakeLists.txt`, reload CMake in CLion.
+
+Example commands from the repository root:
 
 ```sh
 cmake -S . -B build -DCMAKE_PREFIX_PATH="<path-to-your-Qt-kit>"
 cmake --build build
 ```
 
-For a multi-configuration generator, select a configuration when building:
+For a multi-configuration generator:
 
 ```sh
 cmake --build build --config Debug
 ```
 
-These commands are examples, not a verified build procedure for the current snapshot. Fix the known source issues first. Executable location depends on the generator and build configuration; inspect the build output or IDE run configuration.
+The existing CLion build profile has been tested. The example commands above must be adapted to the local compiler, generator, and Qt installation.
 
-The current Windows post-build steps copy selected Qt DLLs and the Windows platform plugin. Their Qt-path detection must match the local installation; deployment has not been validated here.
+Current Windows post-build steps copy the required Qt module DLLs, the Windows platform plugin, and the SQLite driver plugin. Deployment outside the development environment is not yet fully validated.
 
-Android requires a separate Android toolchain and platform configuration. A Windows executable cannot be installed as an Android app.
+### Countdown test
 
-## Backup roadmap
+Temporarily construct:
 
-Local operation is the initial design goal. Remote backup should be optional and should not be required to run a timer.
+```cpp
+Timer timer(5000);
+```
 
-A future backend may live in a separate repository. The timer app would create a defined backup/export format and communicate with that service through a documented interface.
+Verify:
 
-Whether the service should back up other small databases is an open design question, not a committed feature. Start with this app's session data before designing a general database-backup platform.
+1. Initial display is `00:05`.
+2. Start begins the countdown.
+3. Pause freezes it.
+4. Resume continues from the remaining time.
+5. Reset restores the full duration.
+6. Completion stops at zero.
+7. Start after completion begins a new session.
 
-Before implementing uploads, define authentication, user consent, transport security, backup consistency, format versioning, and restore behavior. A backup feature is not complete until restoration is tested.
+Restore the normal duration afterward:
 
-## Immediate milestone
+```cpp
+Timer timer(25 * 60 * 1000);
+```
 
-Repair the view/header implementation boundary, then show a static `25:00` label with Start, Pause, and Reset controls. Build and run that screen before adding countdown behavior.
+The duration is currently configured in code, not through a settings interface.
 
- 
- 
+### Database verification
+
+Startup output should include:
+
+```text
+Available SQL drivers: QList("QSQLITE")
+SQLite available: true
+Database ready: ".../productivity-v1.sqlite"
+Saved sessions: 0
+```
+
+Zero is expected until session insertion is implemented.
+
+If the standalone SQLite shell is available, inspect the printed path:
+
+```sh
+sqlite3 --readonly "<printed-database-path>"
+```
+
+Then:
+
+```sql
+.tables
+.schema sessions
+SELECT COUNT(*) FROM sessions;
+.quit
+```
+
+Expected tables:
+
+```text
+sessions  task_archetypes  tasks
+```
+
+The standalone SQLite shell is optional; it is separate from the Qt driver used by the application.
+
+## Roadmap and references
+
+### Later milestones
+
+- Archetype and task creation/editing.
+- Task selection and completed-session persistence.
+- Session history and time totals.
+- Priority-ranked task lists.
+- Configurable scoring policies with actual time shown separately.
+- Schema versioning and migrations.
+- Unfinished-session recovery.
+- Android interface, deployment, background alarms, and state restoration.
+- Optional remote backups and tested restoration.
+
+### Backup direction
+
+The application should remain usable without a website or network connection.
+
+A future backend may live in a separate repository. The timer app would communicate through a documented interface and use a defined backup/export format.
+
+Backing up unrelated small databases remains an open idea, not a committed feature.
+
+Before implementing uploads, define authentication, consent, transport security, backup consistency, format versioning, and restoration. A backup feature is not complete until restoration is tested.
+
+### Documentation
+
+- [QElapsedTimer](https://doc.qt.io/qt-6/qelapsedtimer.html)
+- [QTimer](https://doc.qt.io/qt-6/qtimer.html)
+- [Qt SQL](https://doc.qt.io/qt-6/qtsql-index.html)
+- [QSqlDatabase](https://doc.qt.io/qt-6/qsqldatabase.html)
+- [QSqlQuery](https://doc.qt.io/qt-6/qsqlquery.html)
+- [QStandardPaths](https://doc.qt.io/qt-6/qstandardpaths.html)
+- [Qt for Android](https://doc.qt.io/qt-6/android.html)

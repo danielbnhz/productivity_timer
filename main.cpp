@@ -5,6 +5,7 @@
 #include "src/view/timer_view.h"
 #include <QDebug>
 #include <QSqlDatabase>
+#include "src/persistence/session_repository.h"
 
 int main(int argc, char* argv[])
 {
@@ -16,9 +17,34 @@ int main(int argc, char* argv[])
     qDebug() << "SQLite available:"
              << QSqlDatabase::isDriverAvailable("QSQLITE");
 
+
+    QCoreApplication::setOrganizationName("DanielHernandez");
+    QCoreApplication::setApplicationName("ProductivityTimer");
+
+    productivity_timer::SessionRepository repository;
+
+    if (!repository.initialize()) {
+        qWarning() << "Database initialization failed:"
+                   << repository.last_error();
+    } else {
+        qDebug() << "Database ready:"
+                 << repository.database_path();
+
+        const qint64 count = repository.session_count();
+
+        if (count < 0) {
+            qWarning() << "Session count failed:"
+                       << repository.last_error();
+        } else {
+            qDebug() << "Saved sessions:" << count;
+        }
+    }
+
     using productivity_timer::Timer;
 
-    Timer timer(25 * 60 * 1000);
+    // Timer timer(25 * 60 * 1000);
+    Timer timer(5000);
+
     Timer_View view;
 
     // View requests -> model actions.
