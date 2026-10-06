@@ -3,10 +3,18 @@
 
 #include "src/model/timer.h"
 #include "src/view/timer_view.h"
+#include <QDebug>
+#include <QSqlDatabase>
 
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
+
+    qDebug() << "Available SQL drivers:"
+         << QSqlDatabase::drivers();
+
+    qDebug() << "SQLite available:"
+             << QSqlDatabase::isDriverAvailable("QSQLITE");
 
     using productivity_timer::Timer;
 
