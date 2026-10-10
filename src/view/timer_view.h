@@ -28,6 +28,12 @@ public:
     void show_task_save_result(bool success,
                                const QString& message);
 
+    void set_task_context(
+    const QString& title,
+    bool has_task,
+    bool session_in_progress,
+    bool pending_save);
+
     signals:
         void start_requested();
     void pause_requested();
@@ -42,7 +48,8 @@ private:
     QPushButton* m_pause_button = nullptr;
     QPushButton* m_reset_button = nullptr;
     void update_task_save_enabled();
-
+    QLabel* m_current_task_label = nullptr;
+    bool m_task_editable = true;
     QLineEdit* m_task_title = nullptr;
     QComboBox* m_archetype_combo = nullptr;
     QPushButton* m_save_task_button = nullptr;

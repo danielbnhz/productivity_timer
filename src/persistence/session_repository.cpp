@@ -121,6 +121,8 @@ bool SessionRepository::initialize()
                         )
                     ),
                 created_at_utc TEXT NOT NULL,
+                completed_at_utc TEXT,
+
 
                 FOREIGN KEY (archetype_id)
                     REFERENCES task_archetypes(id)
@@ -175,7 +177,36 @@ bool SessionRepository::initialize()
 
     return true;
 }
+    bool SessionRepository::ensure_starter_archetypes()
+{
+    m_last_error.clear();
 
+    if (!database_is_ready()) {
+        return false;
+    }
+
+    const auto db =
+        QSqlDatabase::database(m_connection_name, false);
+
+    QSqlQuery query(db);
+
+    if (!query.exec(R"SQL(
+        INSERT INTO task_archetypes (
+            name,
+            default_priority
+        )
+        VALUES
+            ('Programming', 2),
+            ('Music', 1),
+            ('Exercise', 2)
+        ON CONFLICT(name) DO NOTHING
+    )SQL")) {
+        m_last_error = query.lastError().text();
+        return false;
+    }
+
+    return true;
+}
 qint64 SessionRepository::session_count()
 {
     m_last_error.clear();
@@ -378,5 +409,176 @@ QString SessionRepository::last_error() const
     }
 
     return query.lastInsertId().toLongLong();
+}
+    bool SessionRepository::task_priority(
+    qint64 task_id,
+    int& priority)
+{
+    m_last_error.clear();
+
+    if (!database_is_ready()) {
+        return false;
+    }
+
+    const auto db =
+        QSqlDatabase::database(m_connection_name, false);
+
+    QSqlQuery query(db);
+
+    if (!query.prepare(R"SQL(
+        SELECT COALESCE(
+            t.priority_override,
+            a.default_priority
+        )
+        FROM tasks AS t
+        JOIN task_archetypes AS a
+            ON a.id = t.archetype_id
+        WHERE t.id = :task_id
+          AND t.status = 'active'
+          AND a.archived = 0
+    )SQL")) {
+        m_last_error = query.lastError().text();
+        return false;
+    }
+
+    query.bindValue(":task_id", task_id);
+
+    if (!query.exec()) {
+        m_last_error = query.lastError().text();
+        return false;
+    }
+
+    if (!query.next()) {
+        m_last_error =
+            "The task is unavailable or is no longer active.";
+        return false;
+    }
+
+    priority = query.value(0).toInt();
+
+    if (priority < 0 || priority > 4) {
+        m_last_error = "The task has an invalid priority.";
+        return false;
+    }
+
+    return true;
+}
+    bool SessionRepository::complete_task_session(
+    qint64 task_id,
+    const QDateTime& started_at,
+    const QDateTime& ended_at,
+    qint64 planned_duration_ms,
+    qint64 focused_duration_ms,
+    int priority_snapshot)
+{
+    m_last_error.clear();
+
+    if (!started_at.isValid()
+        || !ended_at.isValid()
+        || planned_duration_ms <= 0
+        || focused_duration_ms < 0
+        || focused_duration_ms > planned_duration_ms
+        || priority_snapshot < 0
+        || priority_snapshot > 4) {
+        m_last_error = "Invalid session data.";
+        return false;
+    }
+
+    if (!database_is_ready()) {
+        return false;
+    }
+
+    auto db =
+        QSqlDatabase::database(m_connection_name, false);
+
+    if (!db.transaction()) {
+        m_last_error = db.lastError().text();
+        return false;
+    }
+
+    const QString start_text =
+        started_at.toUTC().toString(Qt::ISODateWithMs);
+
+    const QString end_text =
+        ended_at.toUTC().toString(Qt::ISODateWithMs);
+
+    const auto fail = [&db, this](const QString& error) {
+        m_last_error = error;
+
+        if (!db.rollback()) {
+            m_last_error +=
+                "\nRollback failed: " + db.lastError().text();
+        }
+
+        return false;
+    };
+
+    {
+        QSqlQuery query(db);
+
+        if (!query.prepare(R"SQL(
+            UPDATE tasks
+            SET status = 'completed',
+                completed_at_utc = :ended_at
+            WHERE id = :task_id
+              AND status = 'active'
+        )SQL")) {
+            return fail(query.lastError().text());
+        }
+
+        query.bindValue(":task_id", task_id);
+        query.bindValue(":ended_at", end_text);
+
+        if (!query.exec()) {
+            return fail(query.lastError().text());
+        }
+
+        if (query.numRowsAffected() != 1) {
+            return fail(
+                "Task is missing or is already completed.");
+        }
+    }
+
+    {
+        QSqlQuery query(db);
+
+        if (!query.prepare(R"SQL(
+            INSERT INTO sessions (
+                task_id,
+                started_at_utc,
+                ended_at_utc,
+                planned_duration_ms,
+                focused_duration_ms,
+                effective_priority_snapshot
+            )
+            VALUES (
+                :task_id,
+                :started_at,
+                :ended_at,
+                :planned_ms,
+                :focused_ms,
+                :priority
+            )
+        )SQL")) {
+            return fail(query.lastError().text());
+        }
+
+        query.bindValue(":task_id", task_id);
+        query.bindValue(":started_at", start_text);
+        query.bindValue(":ended_at", end_text);
+        query.bindValue(":planned_ms", planned_duration_ms);
+        query.bindValue(":focused_ms", focused_duration_ms);
+        query.bindValue(":priority", priority_snapshot);
+
+        if (!query.exec()) {
+            return fail(query.lastError().text());
+        }
+    }
+
+    if (!db.commit()) {
+        return fail(db.lastError().text());
+    }
+
+    return true;
 }
 }

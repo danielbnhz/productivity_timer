@@ -14,8 +14,7 @@ Timer_View::Timer_View(QWidget* parent)
     : QMainWindow(parent)
 {
     setWindowTitle("Productivity Timer");
-    resize(420, 380);
-
+    resize(420, 460);
     auto* central = new QWidget(this);
     auto* layout = new QVBoxLayout(central);
 
@@ -44,6 +43,13 @@ Timer_View::Timer_View(QWidget* parent)
 
     layout->addWidget(m_timer_label);
     layout->addWidget(m_status_label);
+
+    m_current_task_label =
+        new QLabel("Current task: none", central);
+    m_current_task_label->setWordWrap(true);
+    m_current_task_label->setAlignment(Qt::AlignCenter);
+    layout->addWidget(m_current_task_label);
+
     layout->addLayout(button_layout);
     layout->addWidget(new QLabel("Task title", central));
 
@@ -193,9 +199,8 @@ void Timer_View::update_task_save_enabled()
         !m_task_title->text().trimmed().isEmpty();
 
     m_save_task_button->setEnabled(
-        valid_selection && has_title);
+        m_task_editable && valid_selection && has_title);
 }
-
 void Timer_View::show_task_save_result(
     bool success,
     const QString& message)
@@ -208,4 +213,38 @@ void Timer_View::show_task_save_result(
     }
 
     update_task_save_enabled();
+}
+
+    void Timer_View::set_task_context(
+    const QString& title,
+    bool has_task,
+    bool session_in_progress,
+    bool pending_save)
+{
+    m_current_task_label->setText(
+        has_task
+            ? QString("Current task: %1").arg(title)
+            : QString("Current task: none"));
+
+    m_task_editable =
+        !session_in_progress && !pending_save;
+
+    m_task_title->setEnabled(m_task_editable);
+    m_archetype_combo->setEnabled(m_task_editable);
+    update_task_save_enabled();
+
+    if (!has_task) {
+        m_start_button->setEnabled(false);
+    }
+
+    m_reset_button->setEnabled(!pending_save);
+
+    if (pending_save) {
+        m_status_label->setText(
+            "Timer finished — database save failed.");
+
+        m_start_button->setText("Retry save");
+        m_start_button->setEnabled(true);
+        m_pause_button->setEnabled(false);
+    }
 }

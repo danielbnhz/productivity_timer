@@ -4,6 +4,7 @@
 #include <QString>
 #include <QtGlobal>
 #include <QList>
+#include <QDateTime>
 namespace productivity_timer
 {
 
@@ -31,8 +32,17 @@ namespace productivity_timer
         SessionRepository& operator=(const SessionRepository&) = delete;
 
         bool initialize();
+        bool ensure_starter_archetypes();
+        bool task_priority(qint64 task_id, int& priority);
 
-        // Returns -1 on failure.
+        bool complete_task_session(
+            qint64 task_id,
+            const QDateTime& started_at,
+            const QDateTime& ended_at,
+            qint64 planned_duration_ms,
+            qint64 focused_duration_ms,
+            int priority_snapshot);
+
         qint64 session_count();
 
         [[nodiscard]] QString database_path() const;
