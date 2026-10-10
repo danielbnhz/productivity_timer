@@ -6,12 +6,15 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QComboBox>
+#include <QLineEdit>
+#include <QVariant>
 
 Timer_View::Timer_View(QWidget* parent)
     : QMainWindow(parent)
 {
     setWindowTitle("Productivity Timer");
-    resize(360, 220);
+    resize(420, 380);
 
     auto* central = new QWidget(this);
     auto* layout = new QVBoxLayout(central);
@@ -42,6 +45,71 @@ Timer_View::Timer_View(QWidget* parent)
     layout->addWidget(m_timer_label);
     layout->addWidget(m_status_label);
     layout->addLayout(button_layout);
+    layout->addWidget(new QLabel("Task title", central));
+
+    m_task_title = new QLineEdit(central);
+    m_task_title->setPlaceholderText(
+        "Example: Finish task database saving");
+    layout->addWidget(m_task_title);
+
+    layout->addWidget(new QLabel("Super task", central));
+
+    m_archetype_combo = new QComboBox(central);
+    layout->addWidget(m_archetype_combo);
+
+    m_save_task_button =
+        new QPushButton("Save task", central);
+    layout->addWidget(m_save_task_button);
+
+    m_task_feedback_label = new QLabel(central);
+    m_task_feedback_label->setWordWrap(true);
+    layout->addWidget(m_task_feedback_label);
+
+    clear_task_archetypes();
+
+    connect(m_task_title, &QLineEdit::textChanged,
+            this, [this](const QString&) {
+                update_task_save_enabled();
+            });
+
+    connect(m_archetype_combo,
+            &QComboBox::currentIndexChanged,
+            this, [this](int) {
+                update_task_save_enabled();
+            });
+
+    connect(m_save_task_button, &QPushButton::clicked,
+            this, [this]() {
+                const QString title =
+                    m_task_title->text().trimmed();
+
+                const QVariant selected_id =
+                    m_archetype_combo->currentData();
+
+                if (title.isEmpty()
+                    || !selected_id.isValid()
+                    || selected_id.isNull()) {
+                    show_task_save_result(
+                        false,
+                        "Enter a title and select a super task.");
+                    return;
+                }
+
+                bool id_ok = false;
+                const qint64 archetype_id =
+                    selected_id.toLongLong(&id_ok);
+
+                if (!id_ok) {
+                    show_task_save_result(
+                        false,
+                        "The selected super task has an invalid ID.");
+                    return;
+                }
+
+                emit task_save_requested(archetype_id, title);
+            });
+
+    update_task_save_enabled();
 
     setCentralWidget(central);
     set_controls(false, false, false);
@@ -91,4 +159,53 @@ void Timer_View::set_controls(bool running,
     } else {
         m_status_label->setText("Ready");
     }
+}
+
+void Timer_View::clear_task_archetypes()
+{
+    m_archetype_combo->clear();
+    m_archetype_combo->addItem("Select a super task...");
+    m_archetype_combo->setCurrentIndex(0);
+
+    update_task_save_enabled();
+}
+
+void Timer_View::add_task_archetype(
+    qint64 id,
+    const QString& name)
+{
+    m_archetype_combo->addItem(
+        name,
+        QVariant::fromValue(id));
+
+    update_task_save_enabled();
+}
+
+void Timer_View::update_task_save_enabled()
+{
+    const QVariant selected_id =
+        m_archetype_combo->currentData();
+
+    const bool valid_selection =
+        selected_id.isValid() && !selected_id.isNull();
+
+    const bool has_title =
+        !m_task_title->text().trimmed().isEmpty();
+
+    m_save_task_button->setEnabled(
+        valid_selection && has_title);
+}
+
+void Timer_View::show_task_save_result(
+    bool success,
+    const QString& message)
+{
+    m_task_feedback_label->setText(message);
+
+    if (success) {
+        m_task_title->clear();
+        m_archetype_combo->setCurrentIndex(0);
+    }
+
+    update_task_save_enabled();
 }

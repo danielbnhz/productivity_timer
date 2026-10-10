@@ -3,7 +3,7 @@
 
 #include <QString>
 #include <QtGlobal>
-
+#include <QList>
 namespace productivity_timer
 {
 
@@ -13,6 +13,12 @@ namespace productivity_timer
         Normal    = 2,
         High      = 3,
         Emergency = 4
+    };
+
+    struct TaskArchetype
+    {
+        qint64 id;
+        QString name;
     };
 
     class SessionRepository
@@ -32,10 +38,22 @@ namespace productivity_timer
         [[nodiscard]] QString database_path() const;
         [[nodiscard]] QString last_error() const;
 
+        bool load_active_archetypes(QList<TaskArchetype>& result);
+
+        qint64 create_archetype(const QString& name,
+                       Priority default_priority);
+
+        qint64 create_task(qint64 archetype_id,
+                   const QString& title);
+
+
     private:
         QString m_connection_name;
         QString m_database_path;
         QString m_last_error;
+
+
+        bool database_is_ready();
     };
 
 }

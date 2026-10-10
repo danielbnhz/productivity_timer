@@ -8,6 +8,7 @@
 #include <QStringList>
 #include <QUuid>
 #include <QVariant>
+#include <QDateTime>
 
 namespace productivity_timer
 {
@@ -217,5 +218,165 @@ QString SessionRepository::last_error() const
 {
     return m_last_error;
 }
+    bool SessionRepository::database_is_ready()
 
+{
+    if (!QSqlDatabase::contains(m_connection_name)) {
+        m_last_error = "Database has not been initialized.";
+        return false;
+    }
+
+    const auto db =
+        QSqlDatabase::database(m_connection_name, false);
+
+    if (!db.isOpen()) {
+        m_last_error = "Database connection is not open.";
+        return false;
+    }
+
+    return true;
+}
+    bool SessionRepository::load_active_archetypes(
+        QList<TaskArchetype>& result)
+{
+    m_last_error.clear();
+    result.clear();
+
+    if (!database_is_ready()) {
+        return false;
+    }
+
+    const auto db =
+        QSqlDatabase::database(m_connection_name, false);
+
+    QSqlQuery query(db);
+
+    if (!query.exec(
+            "SELECT id, name "
+            "FROM task_archetypes "
+            "WHERE archived = 0 "
+            "ORDER BY name COLLATE NOCASE, id")) {
+        m_last_error = query.lastError().text();
+        return false;
+            }
+
+    while (query.next()) {
+        result.append(TaskArchetype{
+            query.value(0).toLongLong(),
+            query.value(1).toString()
+        });
+    }
+
+    if (query.lastError().isValid()) {
+        m_last_error = query.lastError().text();
+        result.clear();
+        return false;
+    }
+
+    return true;
+}
+    qint64 SessionRepository::create_archetype(
+        const QString& name,
+        Priority default_priority)
+{
+    m_last_error.clear();
+
+    const QString clean_name = name.trimmed();
+    const int priority = static_cast<int>(default_priority);
+
+    if (clean_name.isEmpty()) {
+        m_last_error = "Archetype name cannot be empty.";
+        return -1;
+    }
+
+    if (priority < 0 || priority > 4) {
+        m_last_error = "Priority must be between 0 and 4.";
+        return -1;
+    }
+
+    if (!database_is_ready()) {
+        return -1;
+    }
+
+    const auto db =
+        QSqlDatabase::database(m_connection_name, false);
+
+    QSqlQuery query(db);
+
+    if (!query.prepare(
+            "INSERT INTO task_archetypes "
+            "(name, default_priority) "
+            "VALUES (:name, :priority)")) {
+        m_last_error = query.lastError().text();
+        return -1;
+            }
+
+    query.bindValue(":name", clean_name);
+    query.bindValue(":priority", priority);
+
+    if (!query.exec()) {
+        m_last_error = query.lastError().text();
+        return -1;
+    }
+
+    return query.lastInsertId().toLongLong();
+}
+
+    qint64 SessionRepository::create_task(
+    qint64 archetype_id,
+    const QString& title)
+{
+    m_last_error.clear();
+
+    const QString clean_title = title.trimmed();
+
+    if (clean_title.isEmpty()) {
+        m_last_error = "Task title cannot be empty.";
+        return -1;
+    }
+
+    if (!database_is_ready()) {
+        return -1;
+    }
+
+    const auto db =
+        QSqlDatabase::database(m_connection_name, false);
+
+    QSqlQuery query(db);
+
+    if (!query.prepare(R"SQL(
+        INSERT INTO tasks (
+            archetype_id,
+            title,
+            created_at_utc
+        )
+        SELECT id, :title, :created_at
+        FROM task_archetypes
+        WHERE id = :archetype_id
+          AND archived = 0
+    )SQL")) {
+        m_last_error = query.lastError().text();
+        return -1;
+    }
+
+    query.bindValue(":archetype_id", archetype_id);
+    query.bindValue(":title", clean_title);
+    query.bindValue(
+        ":created_at",
+        QDateTime::currentDateTimeUtc().toString(
+            Qt::ISODateWithMs));
+
+    if (!query.exec()) {
+        m_last_error = query.lastError().text();
+        return -1;
+    }
+
+    if (query.numRowsAffected() != 1) {
+        m_last_error =
+            "Select an existing, nonarchived super task.";
+        return -1;
+    }
+
+    return query.lastInsertId().toLongLong();
+}
 }
