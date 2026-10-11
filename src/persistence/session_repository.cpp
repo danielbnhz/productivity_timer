@@ -198,7 +198,8 @@ bool SessionRepository::initialize()
         VALUES
             ('Programming', 2),
             ('Music', 1),
-            ('Exercise', 2)
+            ('Exercise', 2),
+            ('Botany/Game', 1)
         ON CONFLICT(name) DO NOTHING
     )SQL")) {
         m_last_error = query.lastError().text();

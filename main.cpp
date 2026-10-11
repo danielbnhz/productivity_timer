@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    constexpr qint64 duration_ms = 5000;
+    constexpr qint64 duration_ms = 45 * 60 * 1000;
 
     Timer timer(duration_ms);
     Timer_View view;
