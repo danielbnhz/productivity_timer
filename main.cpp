@@ -4,7 +4,7 @@
 #include <QList>
 #include <QObject>
 #include <QSqlDatabase>
-
+#include <QIcon>
 #include <optional>
 
 #include "src/model/timer.h"
@@ -16,7 +16,7 @@
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
-
+    app.setWindowIcon(QIcon(":/resources/icons/timer_icon.png"));
     app.setStyle("Fusion");
     app.setStyleSheet(productivity_timer::theme_stylesheet());
 

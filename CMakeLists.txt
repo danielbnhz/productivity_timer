@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.30)
 project(productivity_timer)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -24,6 +25,14 @@ add_executable(productivity_timer main.cpp
         src/persistence/session_repository.h
         src/view/theme.h
 )
+
+target_sources(productivity_timer PRIVATE resources.qrc)
+
+if(WIN32)
+    enable_language(RC)
+    target_sources(productivity_timer PRIVATE app.rc)
+endif()
+
 target_link_libraries(productivity_timer
         Qt::Core
         Qt::Gui
