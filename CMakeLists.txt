@@ -22,6 +22,7 @@ add_executable(productivity_timer main.cpp
         src/view/timer_view.h
         src/persistence/session_repository.cpp
         src/persistence/session_repository.h
+        src/view/theme.h
 )
 target_link_libraries(productivity_timer
         Qt::Core

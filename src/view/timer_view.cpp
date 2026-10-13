@@ -22,17 +22,18 @@ Timer_View::Timer_View(QWidget* parent)
     layout->setSpacing(16);
 
     m_timer_label = new QLabel(central);
+    m_timer_label->setObjectName("timerLabel");
     m_timer_label->setAlignment(Qt::AlignCenter);
 
-    QFont timer_font = m_timer_label->font();
-    timer_font.setPointSize(36);
-    timer_font.setBold(true);
-    m_timer_label->setFont(timer_font);
+
 
     m_status_label = new QLabel("Ready", central);
+    m_status_label->setObjectName("statusLabel");
+
     m_status_label->setAlignment(Qt::AlignCenter);
 
     m_start_button = new QPushButton("Start", central);
+    m_start_button->setObjectName("startButton");
     m_pause_button = new QPushButton("Pause", central);
     m_reset_button = new QPushButton("Reset", central);
 
@@ -42,10 +43,12 @@ Timer_View::Timer_View(QWidget* parent)
     button_layout->addWidget(m_reset_button);
 
     layout->addWidget(m_timer_label);
+
     layout->addWidget(m_status_label);
 
     m_current_task_label =
         new QLabel("Current task: none", central);
+    m_current_task_label->setObjectName("currentTaskLabel");
     m_current_task_label->setWordWrap(true);
     m_current_task_label->setAlignment(Qt::AlignCenter);
     layout->addWidget(m_current_task_label);

@@ -11,9 +11,14 @@
 #include "src/view/timer_view.h"
 #include "src/persistence/session_repository.h"
 
+#include "src/view/theme.h"
+
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
+
+    app.setStyle("Fusion");
+    app.setStyleSheet(productivity_timer::theme_stylesheet());
 
     QCoreApplication::setOrganizationName("DanielHernandez");
     QCoreApplication::setApplicationName("ProductivityTimer");
