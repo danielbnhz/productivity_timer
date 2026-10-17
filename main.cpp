@@ -12,7 +12,7 @@
 #include "src/persistence/session_repository.h"
 
 #include "src/view/theme.h"
-
+#include <QStyleHints>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -27,13 +27,19 @@ namespace
         const HWND hwnd = reinterpret_cast<HWND>(window->winId());
 
         const BOOL dark = TRUE;
-        DwmSetWindowAttribute(hwnd, 20, &dark, sizeof(dark));      // dark mode
+        const HRESULT r1 =
+            DwmSetWindowAttribute(hwnd, 20, &dark, sizeof(dark));
 
         const COLORREF caption = RGB(0x0F, 0x1B, 0x2D);
-        DwmSetWindowAttribute(hwnd, 35, &caption, sizeof(caption)); // bar color
+        const HRESULT r2 =
+            DwmSetWindowAttribute(hwnd, 35, &caption, sizeof(caption));
 
         const COLORREF text = RGB(0xE6, 0xED, 0xF7);
-        DwmSetWindowAttribute(hwnd, 36, &text, sizeof(text));       // title text
+        const HRESULT r3 =
+            DwmSetWindowAttribute(hwnd, 36, &text, sizeof(text));
+
+        qDebug() << "DWM results (0 = ok): dark" << r1
+                 << "caption" << r2 << "text" << r3;
 #else
         Q_UNUSED(window);
 #endif
@@ -43,6 +49,9 @@ namespace
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
+    app.styleHints()->setColorScheme(Qt::ColorScheme::Dark);
+
+
     app.setWindowIcon(QIcon(":/resources/icons/timer_icon.png"));
     app.setStyle("Fusion");
     app.setStyleSheet(productivity_timer::theme_stylesheet());
