@@ -582,4 +582,84 @@ QString SessionRepository::last_error() const
 
     return true;
 }
+
+bool SessionRepository::load_usage_summary(UsageSummary& result)
+{
+    m_last_error.clear();
+    result = UsageSummary{};
+
+    if (!database_is_ready()) {
+        return false;
+    }
+
+    const auto db =
+        QSqlDatabase::database(m_connection_name, false);
+
+    {
+        QSqlQuery query(db);
+
+        if (!query.exec(R"SQL(
+            SELECT
+                COALESCE(SUM(focused_duration_ms), 0),
+                COALESCE(SUM(
+                    focused_duration_ms
+                    * effective_priority_snapshot
+                ), 0)
+            FROM sessions
+        )SQL")) {
+            m_last_error = query.lastError().text();
+            return false;
+        }
+
+        if (!query.next()) {
+            m_last_error = "Usage totals query returned no result.";
+            return false;
+        }
+
+        result.total_focused_ms = query.value(0).toLongLong();
+        result.total_weighted_ms = query.value(1).toLongLong();
+    }
+
+    {
+        QSqlQuery query(db);
+
+        if (!query.exec(R"SQL(
+            SELECT
+                a.name,
+                COALESCE(SUM(s.focused_duration_ms), 0),
+                COALESCE(SUM(
+                    s.focused_duration_ms
+                    * s.effective_priority_snapshot
+                ), 0)
+            FROM task_archetypes AS a
+            LEFT JOIN tasks AS t
+                ON t.archetype_id = a.id
+            LEFT JOIN sessions AS s
+                ON s.task_id = t.id
+            GROUP BY a.id, a.name
+            ORDER BY 2 DESC, a.name COLLATE NOCASE
+        )SQL")) {
+            m_last_error = query.lastError().text();
+            result = UsageSummary{};
+            return false;
+        }
+
+        while (query.next()) {
+            result.by_archetype.append(ArchetypeUsage{
+                query.value(0).toString(),
+                query.value(1).toLongLong(),
+                query.value(2).toLongLong()
+            });
+        }
+
+        if (query.lastError().isValid()) {
+            m_last_error = query.lastError().text();
+            result = UsageSummary{};
+            return false;
+        }
+    }
+
+    return true;
+}
+
 }

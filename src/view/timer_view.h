@@ -10,6 +10,9 @@ class QPushButton;
 class QLineEdit;
 class QComboBox;
 
+class QTabWidget;
+class QTableWidget;
+
 class Timer_View : public QMainWindow
 {
     Q_OBJECT
@@ -28,6 +31,15 @@ public:
     void show_task_save_result(bool success,
                                const QString& message);
 
+    void set_usage_totals(qint64 total_focused_ms,
+                          qint64 total_weighted_ms);
+    void clear_usage_rows();
+    void add_usage_row(const QString& name,
+                       qint64 focused_ms,
+                       qint64 weighted_ms);
+    void set_usage_error(const QString& message);
+
+
     void set_task_context(
     const QString& title,
     bool has_task,
@@ -35,11 +47,12 @@ public:
     bool pending_save);
 
     signals:
-        void start_requested();
+    void start_requested();
     void pause_requested();
     void reset_requested();
     void task_save_requested(qint64 archetype_id,
                          const QString& title);
+    void data_view_requested();
 
 private:
     QLabel* m_timer_label = nullptr;
@@ -54,6 +67,12 @@ private:
     QComboBox* m_archetype_combo = nullptr;
     QPushButton* m_save_task_button = nullptr;
     QLabel* m_task_feedback_label = nullptr;
+
+    QWidget* build_data_page();
+    QLabel* m_total_hours_label = nullptr;
+    QLabel* m_productive_hours_label = nullptr;
+    QLabel* m_data_status_label = nullptr;
+    QTableWidget* m_usage_table = nullptr;
 };
 
 #endif // PRODUCTIVITY_TIMER_TIMER_VIEW_H

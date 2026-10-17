@@ -22,6 +22,22 @@ namespace productivity_timer
         QString name;
     };
 
+    struct ArchetypeUsage
+    {
+        QString name;
+        qint64 focused_ms;
+        qint64 weighted_ms;
+    };
+
+    struct UsageSummary
+    {
+        qint64 total_focused_ms = 0;
+        qint64 total_weighted_ms = 0;
+        QList<ArchetypeUsage> by_archetype;
+    };
+
+
+
     class SessionRepository
     {
     public:
@@ -34,6 +50,7 @@ namespace productivity_timer
         bool initialize();
         bool ensure_starter_archetypes();
         bool task_priority(qint64 task_id, int& priority);
+        bool load_usage_summary(UsageSummary& result);
 
         bool complete_task_session(
             qint64 task_id,

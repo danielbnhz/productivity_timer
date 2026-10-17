@@ -9,12 +9,28 @@
 #include <QComboBox>
 #include <QLineEdit>
 #include <QVariant>
+#include <QHeaderView>
+#include <QTabWidget>
+#include <QTableWidget>
+#include <QTableWidgetItem>
+
+namespace
+{
+    QString format_hours(qint64 milliseconds)
+    {
+        return QString::number(
+                   static_cast<double>(milliseconds) / 3'600'000.0,
+                   'f', 1)
+               + " h";
+    }
+}
+
 
 Timer_View::Timer_View(QWidget* parent)
     : QMainWindow(parent)
 {
     setWindowTitle("Productivity Timer");
-    resize(420, 460);
+    resize(480, 540);
     auto* central = new QWidget(this);
     auto* layout = new QVBoxLayout(central);
 
@@ -120,7 +136,17 @@ Timer_View::Timer_View(QWidget* parent)
 
     update_task_save_enabled();
 
-    setCentralWidget(central);
+    auto* tabs = new QTabWidget(this);
+    tabs->addTab(central, "Timer");
+    tabs->addTab(build_data_page(), "Data");
+    setCentralWidget(tabs);
+
+    connect(tabs, &QTabWidget::currentChanged,
+            this, [this](int index) {
+                if (index == 1) {
+                    emit data_view_requested();
+                }
+            });
     set_controls(false, false, false);
 
     connect(m_start_button, &QPushButton::clicked,
@@ -250,4 +276,96 @@ void Timer_View::show_task_save_result(
         m_start_button->setEnabled(true);
         m_pause_button->setEnabled(false);
     }
+}
+
+
+QWidget* Timer_View::build_data_page()
+{
+    auto* page = new QWidget;
+    auto* layout = new QVBoxLayout(page);
+    layout->setContentsMargins(24, 24, 24, 24);
+    layout->setSpacing(12);
+
+    const auto add_stat = [&](const QString& caption,
+                              QLabel*& value_label,
+                              const QString& object_name) {
+        auto* caption_label = new QLabel(caption, page);
+        caption_label->setAlignment(Qt::AlignCenter);
+
+        value_label = new QLabel(format_hours(0), page);
+        value_label->setObjectName(object_name);
+        value_label->setAlignment(Qt::AlignCenter);
+
+        QFont font = value_label->font();
+        font.setPointSize(font.pointSize() + 10);
+        font.setBold(true);
+        value_label->setFont(font);
+
+        layout->addWidget(caption_label);
+        layout->addWidget(value_label);
+    };
+
+    add_stat("Total hours (all super tasks)",
+             m_total_hours_label, "totalHoursLabel");
+    add_stat("Productive hours (hours x priority)",
+             m_productive_hours_label, "productiveHoursLabel");
+
+    layout->addWidget(new QLabel("By super task", page));
+
+    m_usage_table = new QTableWidget(0, 3, page);
+    m_usage_table->setHorizontalHeaderLabels(
+        {"Super task", "Hours", "Productive"});
+    m_usage_table->verticalHeader()->setVisible(false);
+    m_usage_table->setEditTriggers(
+        QAbstractItemView::NoEditTriggers);
+    m_usage_table->setSelectionMode(
+        QAbstractItemView::NoSelection);
+    m_usage_table->horizontalHeader()->setSectionResizeMode(
+        0, QHeaderView::Stretch);
+    layout->addWidget(m_usage_table);
+
+    m_data_status_label = new QLabel(page);
+    m_data_status_label->setWordWrap(true);
+    layout->addWidget(m_data_status_label);
+
+    return page;
+}
+
+void Timer_View::set_usage_totals(qint64 total_focused_ms,
+                                  qint64 total_weighted_ms)
+{
+    m_total_hours_label->setText(format_hours(total_focused_ms));
+    m_productive_hours_label->setText(
+        format_hours(total_weighted_ms));
+    m_data_status_label->clear();
+}
+
+void Timer_View::clear_usage_rows()
+{
+    m_usage_table->setRowCount(0);
+}
+
+void Timer_View::add_usage_row(const QString& name,
+                               qint64 focused_ms,
+                               qint64 weighted_ms)
+{
+    const int row = m_usage_table->rowCount();
+    m_usage_table->insertRow(row);
+
+    m_usage_table->setItem(row, 0, new QTableWidgetItem(name));
+
+    const auto make_number_item = [](qint64 ms) {
+        auto* item = new QTableWidgetItem(format_hours(ms));
+        item->setTextAlignment(
+            Qt::AlignRight | Qt::AlignVCenter);
+        return item;
+    };
+
+    m_usage_table->setItem(row, 1, make_number_item(focused_ms));
+    m_usage_table->setItem(row, 2, make_number_item(weighted_ms));
+}
+
+void Timer_View::set_usage_error(const QString& message)
+{
+    m_data_status_label->setText(message);
 }

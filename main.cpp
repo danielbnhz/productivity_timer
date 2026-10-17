@@ -315,6 +315,34 @@ int main(int argc, char* argv[])
         }
     }
 
+    QObject::connect(
+    &view,
+    &Timer_View::data_view_requested,
+    &view,
+    [&]() {
+        productivity_timer::UsageSummary summary;
+
+        if (!repository.load_usage_summary(summary)) {
+            view.set_usage_error(
+                "Could not load data: "
+                + repository.last_error());
+            return;
+        }
+
+        view.set_usage_totals(
+            summary.total_focused_ms,
+            summary.total_weighted_ms);
+
+        view.clear_usage_rows();
+
+        for (const auto& row : summary.by_archetype) {
+            view.add_usage_row(
+                row.name,
+                row.focused_ms,
+                row.weighted_ms);
+        }
+    });
+
     view.set_remaining_time(timer.remaining_ms());
     refresh_controls();
     view.show();
