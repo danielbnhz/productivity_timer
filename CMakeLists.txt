@@ -41,6 +41,10 @@ target_link_libraries(productivity_timer
 
 )
 
+if(WIN32)
+    target_link_libraries(productivity_timer dwmapi)
+endif()
+
 if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     set(DEBUG_SUFFIX)
 

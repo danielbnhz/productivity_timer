@@ -14,7 +14,8 @@
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QColor>
-
+#include <QShortcut>
+#include <QKeySequence>
 
 namespace
 {
@@ -136,12 +137,29 @@ Timer_View::Timer_View(QWidget* parent)
                 emit task_save_requested(archetype_id, title);
             });
 
+
+
     update_task_save_enabled();
 
     auto* tabs = new QTabWidget(this);
     tabs->addTab(central, "Timer");
     tabs->addTab(build_data_page(), "Data");
     setCentralWidget(tabs);
+
+    auto* space_shortcut =
+    new QShortcut(QKeySequence(Qt::Key_Space), this);
+
+    connect(space_shortcut, &QShortcut::activated, this,
+            [this, tabs]() {
+                if (tabs->currentIndex() != 0) {
+                    return;  // only on the Timer tab
+                }
+                if (m_pause_button->isEnabled()) {
+                    emit pause_requested();
+                } else if (m_start_button->isEnabled()) {
+                    emit start_requested();
+                }
+            });
 
     connect(tabs, &QTabWidget::currentChanged,
             this, [this](int index) {

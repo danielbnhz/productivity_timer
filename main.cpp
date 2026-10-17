@@ -13,6 +13,33 @@
 
 #include "src/view/theme.h"
 
+
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <dwmapi.h>
+#endif
+
+namespace
+{
+    void apply_dark_title_bar(QWidget* window)
+    {
+#ifdef Q_OS_WIN
+        const HWND hwnd = reinterpret_cast<HWND>(window->winId());
+
+        const BOOL dark = TRUE;
+        DwmSetWindowAttribute(hwnd, 20, &dark, sizeof(dark));      // dark mode
+
+        const COLORREF caption = RGB(0x0F, 0x1B, 0x2D);
+        DwmSetWindowAttribute(hwnd, 35, &caption, sizeof(caption)); // bar color
+
+        const COLORREF text = RGB(0xE6, 0xED, 0xF7);
+        DwmSetWindowAttribute(hwnd, 36, &text, sizeof(text));       // title text
+#else
+        Q_UNUSED(window);
+#endif
+    }
+}
+
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);

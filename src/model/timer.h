@@ -34,7 +34,7 @@ namespace productivity_timer
         void reset_timer();
 
         signals:
-            void remaining_time_changed(qint64 remaining_ms);
+        void remaining_time_changed(qint64 remaining_ms);
         void state_changed(productivity_timer::Timer::State state);
         void finished();
 
