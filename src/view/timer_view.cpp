@@ -13,6 +13,8 @@
 #include <QTabWidget>
 #include <QTableWidget>
 #include <QTableWidgetItem>
+#include <QColor>
+
 
 namespace
 {
@@ -363,6 +365,7 @@ void Timer_View::add_usage_row(const QString& name,
 
     m_usage_table->setItem(row, 1, make_number_item(focused_ms));
     m_usage_table->setItem(row, 2, make_number_item(weighted_ms));
+    m_usage_table->item(row, 2)->setForeground(QColor("#FF8A1F"));
 }
 
 void Timer_View::set_usage_error(const QString& message)

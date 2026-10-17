@@ -59,6 +59,52 @@ QComboBox QAbstractItemView {
     selection-background-color: #2F5FA8;
     border: 1px solid #2F5FA8;
 }
+
+QTabWidget::pane {
+    border: none;
+    border-top: 1px solid #1F3050;
+}
+QTabBar::tab {
+    background: transparent;
+    color: #9DB2D1;
+    padding: 10px 22px;
+    border: none;
+    border-bottom: 2px solid transparent;
+}
+QTabBar::tab:hover    { color: #E6EDF7; }
+QTabBar::tab:selected {
+    color: #FF8A1F;
+    border-bottom: 2px solid #FF8A1F;
+    font-weight: 700;
+}
+
+QLabel#totalHoursLabel,
+QLabel#productiveHoursLabel {
+    font-size: 40px;
+    font-weight: 700;
+}
+QLabel#totalHoursLabel      { color: #E6EDF7; }
+QLabel#productiveHoursLabel { color: #FF8A1F; }
+
+QTableWidget {
+    background-color: #16263F;
+    gridline-color: #1F3050;
+    border: 1px solid #2F5FA8;
+    border-radius: 8px;
+}
+QTableWidget::item { padding: 6px 10px; }
+QHeaderView::section {
+    background-color: #1B2F4D;
+    color: #FF8A1F;
+    border: none;
+    border-bottom: 2px solid #FF8A1F;
+    padding: 8px 10px;
+    font-weight: 700;
+}
+QTableCornerButton::section {
+    background-color: #1B2F4D;
+    border: none;
+}
 )");
     }
 
