@@ -105,6 +105,21 @@ QTableCornerButton::section {
     background-color: #1B2F4D;
     border: none;
 }
+
+QPushButton#rangeButton {
+    padding: 6px 10px;
+}
+QPushButton#rangeButton:checked {
+    background-color: #FF8A1F;
+    border: none;
+    color: #0F1B2D;
+    font-weight: 700;
+}
+QPushButton#rangeButton:checked:hover {
+    background-color: #FFA047;
+}
+
+
 )");
     }
 

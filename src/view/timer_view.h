@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QString>
 #include <QtGlobal>
+#include "../model/time_range.h"
+
 
 class QLabel;
 class QPushButton;
@@ -53,6 +55,8 @@ public:
     void task_save_requested(qint64 archetype_id,
                          const QString& title);
     void data_view_requested();
+    void time_range_changed(productivity_timer::TimeRange range);
+
 
 private:
     QLabel* m_timer_label = nullptr;

@@ -351,17 +351,15 @@ int main(int argc, char* argv[])
         }
     }
 
-    QObject::connect(
-    &view,
-    &Timer_View::data_view_requested,
-    &view,
-    [&]() {
+    productivity_timer::TimeRange usage_range =
+        productivity_timer::TimeRange::All;
+
+    const auto refresh_usage = [&]() {
         productivity_timer::UsageSummary summary;
 
-        if (!repository.load_usage_summary(summary)) {
+        if (!repository.load_usage_summary(summary, usage_range)) {
             view.set_usage_error(
-                "Could not load data: "
-                + repository.last_error());
+                "Could not load data: " + repository.last_error());
             return;
         }
 
@@ -377,7 +375,22 @@ int main(int argc, char* argv[])
                 row.focused_ms,
                 row.weighted_ms);
         }
-    });
+    };
+
+    QObject::connect(
+        &view,
+        &Timer_View::data_view_requested,
+        &view,
+        refresh_usage);
+
+    QObject::connect(
+        &view,
+        &Timer_View::time_range_changed,
+        &view,
+        [&](productivity_timer::TimeRange range) {
+            usage_range = range;
+            refresh_usage();
+        });
 
     view.set_remaining_time(timer.remaining_ms());
     refresh_controls();

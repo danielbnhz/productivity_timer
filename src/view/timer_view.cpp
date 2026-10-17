@@ -16,6 +16,8 @@
 #include <QColor>
 #include <QShortcut>
 #include <QKeySequence>
+#include <QButtonGroup>
+
 
 namespace
 {
@@ -305,6 +307,48 @@ QWidget* Timer_View::build_data_page()
     auto* layout = new QVBoxLayout(page);
     layout->setContentsMargins(24, 24, 24, 24);
     layout->setSpacing(12);
+
+    {
+        using productivity_timer::TimeRange;
+
+        struct RangeOption
+        {
+            const char* label;
+            TimeRange range;
+        };
+
+        const RangeOption options[] = {
+            {"Day", TimeRange::Day},
+            {"Week", TimeRange::Week},
+            {"Month", TimeRange::Month},
+            {"Year", TimeRange::Year},
+            {"All", TimeRange::All},
+        };
+
+        auto* range_row = new QHBoxLayout;
+        auto* range_group = new QButtonGroup(page);
+        range_group->setExclusive(true);
+
+        for (const auto& option : options) {
+            auto* button = new QPushButton(option.label, page);
+            button->setObjectName("rangeButton");
+            button->setCheckable(true);
+            button->setFocusPolicy(Qt::NoFocus);
+            button->setChecked(option.range == TimeRange::All);
+
+            range_group->addButton(
+                button, static_cast<int>(option.range));
+            range_row->addWidget(button);
+        }
+
+        layout->addLayout(range_row);
+
+        connect(range_group, &QButtonGroup::idClicked,
+                this, [this](int id) {
+                    emit time_range_changed(
+                        static_cast<productivity_timer::TimeRange>(id));
+                });
+    }
 
     const auto add_stat = [&](const QString& caption,
                               QLabel*& value_label,

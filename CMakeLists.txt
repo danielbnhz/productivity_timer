@@ -24,6 +24,7 @@ add_executable(productivity_timer main.cpp
         src/persistence/session_repository.cpp
         src/persistence/session_repository.h
         src/view/theme.h
+        src/model/time_range.h
 )
 
 target_sources(productivity_timer PRIVATE resources.qrc)

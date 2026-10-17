@@ -9,6 +9,8 @@
 #include <QUuid>
 #include <QVariant>
 #include <QDateTime>
+#include <QDate>
+
 
 namespace productivity_timer
 {
@@ -583,7 +585,41 @@ QString SessionRepository::last_error() const
     return true;
 }
 
-bool SessionRepository::load_usage_summary(UsageSummary& result)
+namespace
+{
+
+QString range_start_text(TimeRange range)
+{
+    static const QString all_time =
+        QStringLiteral("0000-01-01T00:00:00.000Z");
+
+    const QDate today = QDate::currentDate();
+    QDate start;
+
+    switch (range) {
+    case TimeRange::Day:
+        start = today;
+        break;
+    case TimeRange::Week:
+
+        start = today.addDays(1 - today.dayOfWeek());
+        break;
+    case TimeRange::Month:
+        start = QDate(today.year(), today.month(), 1);
+        break;
+    case TimeRange::Year:
+        start = QDate(today.year(), 1, 1);
+        break;
+    case TimeRange::All:
+        return all_time;
+    }
+
+    return start.startOfDay().toUTC().toString(Qt::ISODateWithMs);
+}
+}
+
+bool SessionRepository::load_usage_summary(UsageSummary& result,
+                                           TimeRange range)
 {
     m_last_error.clear();
     result = UsageSummary{};
@@ -595,10 +631,12 @@ bool SessionRepository::load_usage_summary(UsageSummary& result)
     const auto db =
         QSqlDatabase::database(m_connection_name, false);
 
+    const QString start_text = range_start_text(range);
+
     {
         QSqlQuery query(db);
 
-        if (!query.exec(R"SQL(
+        if (!query.prepare(R"SQL(
             SELECT
                 COALESCE(SUM(focused_duration_ms), 0),
                 COALESCE(SUM(
@@ -606,7 +644,15 @@ bool SessionRepository::load_usage_summary(UsageSummary& result)
                     * effective_priority_snapshot
                 ), 0)
             FROM sessions
+            WHERE ended_at_utc >= :start
         )SQL")) {
+            m_last_error = query.lastError().text();
+            return false;
+        }
+
+        query.bindValue(":start", start_text);
+
+        if (!query.exec()) {
             m_last_error = query.lastError().text();
             return false;
         }
@@ -623,7 +669,8 @@ bool SessionRepository::load_usage_summary(UsageSummary& result)
     {
         QSqlQuery query(db);
 
-        if (!query.exec(R"SQL(
+
+        if (!query.prepare(R"SQL(
             SELECT
                 a.name,
                 COALESCE(SUM(s.focused_duration_ms), 0),
@@ -636,9 +683,18 @@ bool SessionRepository::load_usage_summary(UsageSummary& result)
                 ON t.archetype_id = a.id
             LEFT JOIN sessions AS s
                 ON s.task_id = t.id
+               AND s.ended_at_utc >= :start
             GROUP BY a.id, a.name
             ORDER BY 2 DESC, a.name COLLATE NOCASE
         )SQL")) {
+            m_last_error = query.lastError().text();
+            result = UsageSummary{};
+            return false;
+        }
+
+        query.bindValue(":start", start_text);
+
+        if (!query.exec()) {
             m_last_error = query.lastError().text();
             result = UsageSummary{};
             return false;

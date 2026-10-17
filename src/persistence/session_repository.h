@@ -5,6 +5,8 @@
 #include <QtGlobal>
 #include <QList>
 #include <QDateTime>
+#include "../model/time_range.h"
+
 namespace productivity_timer
 {
 
@@ -50,8 +52,8 @@ namespace productivity_timer
         bool initialize();
         bool ensure_starter_archetypes();
         bool task_priority(qint64 task_id, int& priority);
-        bool load_usage_summary(UsageSummary& result);
-
+        bool load_usage_summary(UsageSummary& result,
+                                TimeRange range = TimeRange::All);
         bool complete_task_session(
             qint64 task_id,
             const QDateTime& started_at,
