@@ -392,6 +392,32 @@ int main(int argc, char* argv[])
             refresh_usage();
         });
 
+    QObject::connect(
+        &view,
+        &Timer_View::manual_log_requested,
+        &view,
+        [&](qint64 archetype_id,
+            const QString& title,
+            const QDateTime& started_at,
+            int minutes) {
+            const qint64 duration_ms =
+                static_cast<qint64>(minutes) * 60 * 1000;
+
+            if (!repository.log_manual_session(
+                    archetype_id, title, started_at, duration_ms)) {
+                view.show_log_result(false, repository.last_error());
+                return;
+            }
+
+            view.show_log_result(
+                true,
+                QString("Logged %1 min: %2")
+                    .arg(minutes)
+                    .arg(title.trimmed()));
+        });
+
+
+
     view.set_remaining_time(timer.remaining_ms());
     refresh_controls();
     view.show();

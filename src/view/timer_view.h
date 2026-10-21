@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QString>
 #include <QtGlobal>
+#include <QDateTime>
+
 #include "../model/time_range.h"
 
 
@@ -11,7 +13,8 @@ class QLabel;
 class QPushButton;
 class QLineEdit;
 class QComboBox;
-
+class QDateTimeEdit;
+class QSpinBox;
 class QTabWidget;
 class QTableWidget;
 
@@ -40,7 +43,7 @@ public:
                        qint64 focused_ms,
                        qint64 weighted_ms);
     void set_usage_error(const QString& message);
-
+    void show_log_result(bool success, const QString& message);
 
     void set_task_context(
     const QString& title,
@@ -56,7 +59,10 @@ public:
                          const QString& title);
     void data_view_requested();
     void time_range_changed(productivity_timer::TimeRange range);
-
+    void manual_log_requested(qint64 archetype_id,
+                              const QString& title,
+                              const QDateTime& started_at,
+                              int minutes);
 
 private:
     QLabel* m_timer_label = nullptr;
@@ -71,7 +77,14 @@ private:
     QComboBox* m_archetype_combo = nullptr;
     QPushButton* m_save_task_button = nullptr;
     QLabel* m_task_feedback_label = nullptr;
-
+    QWidget* build_log_page();
+    void update_log_enabled();
+    QLineEdit* m_log_title = nullptr;
+    QComboBox* m_log_archetype_combo = nullptr;
+    QDateTimeEdit* m_log_start_edit = nullptr;
+    QSpinBox* m_log_duration_spin = nullptr;
+    QPushButton* m_log_button = nullptr;
+    QLabel* m_log_feedback_label = nullptr;
     QWidget* build_data_page();
     QLabel* m_total_hours_label = nullptr;
     QLabel* m_productive_hours_label = nullptr;

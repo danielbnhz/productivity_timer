@@ -62,6 +62,12 @@ namespace productivity_timer
             qint64 focused_duration_ms,
             int priority_snapshot);
 
+        bool log_manual_session(
+            qint64 archetype_id,
+            const QString& title,
+            const QDateTime& started_at,
+            qint64 duration_ms);
+
         qint64 session_count();
 
         [[nodiscard]] QString database_path() const;

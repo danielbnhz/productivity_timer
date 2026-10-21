@@ -17,7 +17,8 @@
 #include <QShortcut>
 #include <QKeySequence>
 #include <QButtonGroup>
-
+#include <QDateTimeEdit>
+#include <QSpinBox>
 
 namespace
 {
@@ -146,6 +147,7 @@ Timer_View::Timer_View(QWidget* parent)
     auto* tabs = new QTabWidget(this);
     tabs->addTab(central, "Timer");
     tabs->addTab(build_data_page(), "Data");
+     tabs->addTab(build_log_page(), "Log");
     setCentralWidget(tabs);
 
     auto* space_shortcut =
@@ -154,7 +156,7 @@ Timer_View::Timer_View(QWidget* parent)
     connect(space_shortcut, &QShortcut::activated, this,
             [this, tabs]() {
                 if (tabs->currentIndex() != 0) {
-                    return;  // only on the Timer tab
+                    return;
                 }
                 if (m_pause_button->isEnabled()) {
                     emit pause_requested();
@@ -183,7 +185,7 @@ Timer_View::Timer_View(QWidget* parent)
 
 void Timer_View::set_remaining_time(qint64 remaining_ms)
 {
-    // Round up: 24:59.9 should display as 25:00.
+
     const qint64 milliseconds = qMax<qint64>(0, remaining_ms);
     const qint64 seconds =
         milliseconds / 1000 + (milliseconds % 1000 != 0);
@@ -224,6 +226,12 @@ void Timer_View::clear_task_archetypes()
     m_archetype_combo->addItem("Select a super task...");
     m_archetype_combo->setCurrentIndex(0);
 
+    if (m_log_archetype_combo) {
+        m_log_archetype_combo->clear();
+        m_log_archetype_combo->addItem("Select a super task...");
+        m_log_archetype_combo->setCurrentIndex(0);
+    }
+
     update_task_save_enabled();
 }
 
@@ -234,6 +242,12 @@ void Timer_View::add_task_archetype(
     m_archetype_combo->addItem(
         name,
         QVariant::fromValue(id));
+
+    if (m_log_archetype_combo) {
+        m_log_archetype_combo->addItem(
+            name,
+            QVariant::fromValue(id));
+    }
 
     update_task_save_enabled();
 }
@@ -433,4 +447,125 @@ void Timer_View::add_usage_row(const QString& name,
 void Timer_View::set_usage_error(const QString& message)
 {
     m_data_status_label->setText(message);
+}
+
+
+QWidget* Timer_View::build_log_page()
+{
+    auto* page = new QWidget;
+    auto* layout = new QVBoxLayout(page);
+    layout->setContentsMargins(24, 24, 24, 24);
+    layout->setSpacing(12);
+
+    layout->addWidget(new QLabel("Task title", page));
+    m_log_title = new QLineEdit(page);
+    m_log_title->setPlaceholderText("Example: Hill walk");
+    layout->addWidget(m_log_title);
+
+    layout->addWidget(new QLabel("Super task", page));
+    m_log_archetype_combo = new QComboBox(page);
+    m_log_archetype_combo->addItem("Select a super task...");
+    layout->addWidget(m_log_archetype_combo);
+
+
+    QDateTime default_start =
+        QDateTime::currentDateTime().addSecs(-45 * 60);
+    default_start.setTime(QTime(default_start.time().hour(),
+                                default_start.time().minute()));
+
+    layout->addWidget(new QLabel("Started at", page));
+    m_log_start_edit = new QDateTimeEdit(default_start, page);
+    m_log_start_edit->setDisplayFormat("yyyy-MM-dd  hh:mm");
+    m_log_start_edit->setCalendarPopup(true);
+    layout->addWidget(m_log_start_edit);
+
+    layout->addWidget(new QLabel("Duration", page));
+    m_log_duration_spin = new QSpinBox(page);
+    m_log_duration_spin->setRange(1, 24 * 60);
+    m_log_duration_spin->setValue(45);
+    m_log_duration_spin->setSuffix(" min");
+    layout->addWidget(m_log_duration_spin);
+
+    m_log_button = new QPushButton("Log session", page);
+    m_log_button->setObjectName("startButton");  // reuse orange style
+    layout->addWidget(m_log_button);
+
+    m_log_feedback_label = new QLabel(page);
+    m_log_feedback_label->setWordWrap(true);
+    layout->addWidget(m_log_feedback_label);
+
+    layout->addStretch();
+
+    connect(m_log_title, &QLineEdit::textChanged,
+            this, [this](const QString&) {
+                update_log_enabled();
+            });
+
+    connect(m_log_archetype_combo,
+            &QComboBox::currentIndexChanged,
+            this, [this](int) {
+                update_log_enabled();
+            });
+
+    connect(m_log_button, &QPushButton::clicked,
+            this, [this]() {
+                const QString title = m_log_title->text().trimmed();
+                const QVariant selected_id =
+                    m_log_archetype_combo->currentData();
+
+                if (title.isEmpty()
+                    || !selected_id.isValid()
+                    || selected_id.isNull()) {
+                    show_log_result(
+                        false,
+                        "Enter a title and select a super task.");
+                    return;
+                }
+
+                bool id_ok = false;
+                const qint64 archetype_id =
+                    selected_id.toLongLong(&id_ok);
+
+                if (!id_ok) {
+                    show_log_result(
+                        false,
+                        "The selected super task has an invalid ID.");
+                    return;
+                }
+
+                emit manual_log_requested(
+                    archetype_id,
+                    title,
+                    m_log_start_edit->dateTime(),
+                    m_log_duration_spin->value());
+            });
+
+    update_log_enabled();
+    return page;
+}
+
+void Timer_View::update_log_enabled()
+{
+    const QVariant selected_id =
+        m_log_archetype_combo->currentData();
+
+    const bool valid_selection =
+        selected_id.isValid() && !selected_id.isNull();
+
+    const bool has_title =
+        !m_log_title->text().trimmed().isEmpty();
+
+    m_log_button->setEnabled(valid_selection && has_title);
+}
+
+void Timer_View::show_log_result(bool success,
+                                 const QString& message)
+{
+    m_log_feedback_label->setText(message);
+
+    if (success) {
+        m_log_title->clear();
+    }
+
+    update_log_enabled();
 }

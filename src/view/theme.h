@@ -46,14 +46,15 @@ QPushButton#startButton {
 QPushButton#startButton:hover    { background-color: #FFA047; }
 QPushButton#startButton:disabled { background-color: #3A2A18; color: #7A6850; }
 
-QLineEdit, QComboBox {
+QLineEdit, QComboBox , QDateTimeEdit, QSpinBox {
     background-color: #16263F;
     border: 1px solid #2F5FA8;
     border-radius: 8px;
     padding: 8px 10px;
     selection-background-color: #FF8A1F;
 }
-QLineEdit:focus, QComboBox:focus { border-color: #FF8A1F; }
+QLineEdit:focus, QComboBox:focus,
+QDateTimeEdit:focus, QSpinBox:focus { border-color: #FF8A1F; }
 QComboBox QAbstractItemView {
     background-color: #16263F;
     selection-background-color: #2F5FA8;

@@ -584,7 +584,168 @@ QString SessionRepository::last_error() const
 
     return true;
 }
+bool SessionRepository::log_manual_session(
+    qint64 archetype_id,
+    const QString& title,
+    const QDateTime& started_at,
+    qint64 duration_ms)
+{
+    m_last_error.clear();
 
+    const QString clean_title = title.trimmed();
+
+    if (clean_title.isEmpty()) {
+        m_last_error = "Task title cannot be empty.";
+        return false;
+    }
+
+    if (!started_at.isValid() || duration_ms <= 0) {
+        m_last_error = "Invalid session data.";
+        return false;
+    }
+
+    const QDateTime ended_at = started_at.addMSecs(duration_ms);
+
+    if (ended_at > QDateTime::currentDateTimeUtc()) {
+        m_last_error = "A logged session cannot end in the future.";
+        return false;
+    }
+
+    if (!database_is_ready()) {
+        return false;
+    }
+
+    auto db =
+        QSqlDatabase::database(m_connection_name, false);
+
+    if (!db.transaction()) {
+        m_last_error = db.lastError().text();
+        return false;
+    }
+
+    const QString start_text =
+        started_at.toUTC().toString(Qt::ISODateWithMs);
+
+    const QString end_text =
+        ended_at.toUTC().toString(Qt::ISODateWithMs);
+
+    const auto fail = [&db, this](const QString& error) {
+        m_last_error = error;
+
+        if (!db.rollback()) {
+            m_last_error +=
+                "\nRollback failed: " + db.lastError().text();
+        }
+
+        return false;
+    };
+
+    int priority = 0;
+
+    {
+        QSqlQuery query(db);
+
+        if (!query.prepare(R"SQL(
+            SELECT default_priority
+            FROM task_archetypes
+            WHERE id = :archetype_id
+              AND archived = 0
+        )SQL")) {
+            return fail(query.lastError().text());
+        }
+
+        query.bindValue(":archetype_id", archetype_id);
+
+        if (!query.exec()) {
+            return fail(query.lastError().text());
+        }
+
+        if (!query.next()) {
+            return fail(
+                "Select an existing, nonarchived super task.");
+        }
+
+        priority = query.value(0).toInt();
+    }
+
+    qint64 task_id = -1;
+
+    {
+        QSqlQuery query(db);
+
+        if (!query.prepare(R"SQL(
+            INSERT INTO tasks (
+                archetype_id,
+                title,
+                status,
+                created_at_utc,
+                completed_at_utc
+            )
+            VALUES (
+                :archetype_id,
+                :title,
+                'completed',
+                :created_at,
+                :completed_at
+            )
+        )SQL")) {
+            return fail(query.lastError().text());
+        }
+
+        query.bindValue(":archetype_id", archetype_id);
+        query.bindValue(":title", clean_title);
+        query.bindValue(":created_at", start_text);
+        query.bindValue(":completed_at", end_text);
+
+        if (!query.exec()) {
+            return fail(query.lastError().text());
+        }
+
+        task_id = query.lastInsertId().toLongLong();
+    }
+
+    {
+        QSqlQuery query(db);
+
+        if (!query.prepare(R"SQL(
+            INSERT INTO sessions (
+                task_id,
+                started_at_utc,
+                ended_at_utc,
+                planned_duration_ms,
+                focused_duration_ms,
+                effective_priority_snapshot
+            )
+            VALUES (
+                :task_id,
+                :started_at,
+                :ended_at,
+                :duration_ms,
+                :duration_ms,
+                :priority
+            )
+        )SQL")) {
+            return fail(query.lastError().text());
+        }
+
+        query.bindValue(":task_id", task_id);
+        query.bindValue(":started_at", start_text);
+        query.bindValue(":ended_at", end_text);
+        query.bindValue(":duration_ms", duration_ms);
+        query.bindValue(":priority", priority);
+
+        if (!query.exec()) {
+            return fail(query.lastError().text());
+        }
+    }
+
+    if (!db.commit()) {
+        return fail(db.lastError().text());
+    }
+
+    return true;
+}
+    
 namespace
 {
 
@@ -617,6 +778,8 @@ QString range_start_text(TimeRange range)
     return start.startOfDay().toUTC().toString(Qt::ISODateWithMs);
 }
 }
+
+
 
 bool SessionRepository::load_usage_summary(UsageSummary& result,
                                            TimeRange range)
