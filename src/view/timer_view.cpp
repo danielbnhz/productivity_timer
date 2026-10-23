@@ -19,6 +19,10 @@
 #include <QButtonGroup>
 #include <QDateTimeEdit>
 #include <QSpinBox>
+#include <QCheckBox>
+#include <QSlider>
+#include <QSignalBlocker>
+
 
 namespace
 {
@@ -52,6 +56,24 @@ Timer_View::Timer_View(QWidget* parent)
     m_status_label = new QLabel("Ready", central);
     m_status_label->setObjectName("statusLabel");
 
+    m_duration_minus = new QPushButton("-20", central);
+    m_duration_plus = new QPushButton("+20", central);
+    m_duration_minus->setFocusPolicy(Qt::NoFocus);
+    m_duration_plus->setFocusPolicy(Qt::NoFocus);
+    m_duration_label = new QLabel("Length: 45 min", central);
+    m_duration_label->setAlignment(Qt::AlignCenter);
+
+    auto* duration_row = new QHBoxLayout;
+    duration_row->addWidget(m_duration_minus);
+    duration_row->addWidget(m_duration_label, 1);
+    duration_row->addWidget(m_duration_plus);
+
+    connect(m_duration_minus, &QPushButton::clicked, this,
+            [this]() { emit duration_step_requested(-1); });
+    connect(m_duration_plus, &QPushButton::clicked, this,
+            [this]() { emit duration_step_requested(+1); });
+
+
     m_status_label->setAlignment(Qt::AlignCenter);
 
     m_start_button = new QPushButton("Start", central);
@@ -65,6 +87,7 @@ Timer_View::Timer_View(QWidget* parent)
     button_layout->addWidget(m_reset_button);
 
     layout->addWidget(m_timer_label);
+    layout->addLayout(duration_row);
 
     layout->addWidget(m_status_label);
 
@@ -147,7 +170,8 @@ Timer_View::Timer_View(QWidget* parent)
     auto* tabs = new QTabWidget(this);
     tabs->addTab(central, "Timer");
     tabs->addTab(build_data_page(), "Data");
-     tabs->addTab(build_log_page(), "Log");
+    tabs->addTab(build_log_page(), "Log");
+    tabs->addTab(build_settings_page(), "Settings");
     setCentralWidget(tabs);
 
     auto* space_shortcut =
@@ -171,6 +195,14 @@ Timer_View::Timer_View(QWidget* parent)
                     emit data_view_requested();
                 }
             });
+
+    connect(tabs, &QTabWidget::currentChanged,
+            this, [this](int index) {
+                if (index == 1) {
+                    emit data_view_requested();
+                }
+            });
+
     set_controls(false, false, false);
 
     connect(m_start_button, &QPushButton::clicked,
@@ -568,4 +600,90 @@ void Timer_View::show_log_result(bool success,
     }
 
     update_log_enabled();
+}
+
+void Timer_View::update_duration_buttons()
+{
+    m_duration_minus->setEnabled(m_duration_adjustable && m_can_decrease);
+    m_duration_plus->setEnabled(m_duration_adjustable && m_can_increase);
+}
+
+void Timer_View::set_duration_minutes(int minutes, bool can_decrease, bool can_increase)
+{
+    m_duration_label->setText(QString("Length: %1 min").arg(minutes));
+    m_can_decrease = can_decrease;
+    m_can_increase = can_increase;
+    update_duration_buttons();
+}
+
+productivity_timer::SoundSettings Timer_View::current_sound_settings() const
+{
+    productivity_timer::SoundSettings s;
+    s.done_enabled = m_done_enabled->isChecked();
+    s.done_volume = m_done_volume->value();
+    s.click_enabled = m_click_enabled->isChecked();
+    s.click_volume = m_click_volume->value();
+    return s;
+}
+
+void Timer_View::set_sound_settings(const productivity_timer::SoundSettings& s)
+{
+    const QSignalBlocker b1(m_done_enabled);
+    const QSignalBlocker b2(m_done_volume);
+    const QSignalBlocker b3(m_click_enabled);
+    const QSignalBlocker b4(m_click_volume);
+    m_done_enabled->setChecked(s.done_enabled);
+    m_done_volume->setValue(s.done_volume);
+    m_click_enabled->setChecked(s.click_enabled);
+    m_click_volume->setValue(s.click_volume);
+}
+
+QWidget* Timer_View::build_settings_page()
+{
+    auto* page = new QWidget;
+    auto* layout = new QVBoxLayout(page);
+    layout->setContentsMargins(24, 24, 24, 24);
+    layout->setSpacing(12);
+
+    layout->addWidget(new QLabel("Sounds", page));
+
+    const auto add_sound_row = [&](const QString& title,
+                                   productivity_timer::SoundKind kind,
+                                   QCheckBox*& enabled,
+                                   QSlider*& volume) {
+        enabled = new QCheckBox(title, page);
+        layout->addWidget(enabled);
+
+        volume = new QSlider(Qt::Horizontal, page);
+        volume->setRange(0, 100);
+
+        auto* test = new QPushButton("Test", page);
+        test->setFocusPolicy(Qt::NoFocus);
+
+        auto* row = new QHBoxLayout;
+        row->addWidget(volume, 1);
+        row->addWidget(test);
+        layout->addLayout(row);
+
+        connect(test, &QPushButton::clicked, this,
+                [this, kind]() { emit sound_test_requested(kind); });
+    };
+
+    add_sound_row("Session finished chime",
+                  productivity_timer::SoundKind::Done,
+                  m_done_enabled, m_done_volume);
+    add_sound_row("Log saved click",
+                  productivity_timer::SoundKind::Click,
+                  m_click_enabled, m_click_volume);
+
+    const auto notify = [this]() {
+        emit sound_settings_changed(current_sound_settings());
+    };
+    connect(m_done_enabled, &QCheckBox::toggled, this, notify);
+    connect(m_done_volume, &QSlider::valueChanged, this, notify);
+    connect(m_click_enabled, &QCheckBox::toggled, this, notify);
+    connect(m_click_volume, &QSlider::valueChanged, this, notify);
+
+    layout->addStretch();
+    return page;
 }

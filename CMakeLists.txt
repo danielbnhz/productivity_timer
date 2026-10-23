@@ -14,6 +14,7 @@ find_package(Qt6 COMPONENTS
         Gui
         Widgets
         Sql
+        Multimedia
         REQUIRED)
 
 add_executable(productivity_timer main.cpp
@@ -25,6 +26,9 @@ add_executable(productivity_timer main.cpp
         src/persistence/session_repository.h
         src/view/theme.h
         src/model/time_range.h
+        src/audio/sound_settings.h
+        src/audio/sound_player.h
+        src/audio/sound_player.cpp
 )
 
 target_sources(productivity_timer PRIVATE resources.qrc)
@@ -39,6 +43,7 @@ target_link_libraries(productivity_timer
         Qt::Gui
         Qt::Widgets
         Qt::Sql
+        Qt::Multimedia
 
 )
 
@@ -63,7 +68,7 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
         endif ()
     endif ()
 
-    # Keep the existing Windows platform-plugin deployment.
+
     if (EXISTS "${QT_INSTALL_PATH}/plugins/platforms/qwindows${DEBUG_SUFFIX}.dll")
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E make_directory
@@ -75,7 +80,7 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
         )
     endif ()
 
-    # Copy all four Qt module DLLs. Widgets stays in the list.
+
     foreach (QT_LIB Core Gui Widgets Sql)
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -84,7 +89,7 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
         )
     endforeach ()
 
-    # Copy the SQLite driver plugin.
+
     if (EXISTS "${QT_INSTALL_PATH}/plugins/sqldrivers/qsqlite${DEBUG_SUFFIX}.dll")
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E make_directory
@@ -97,5 +102,16 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     else ()
         message(FATAL_ERROR
                 "SQLite plugin not found under: ${QT_INSTALL_PATH}/plugins/sqldrivers")
+    endif ()
+
+
+    if (EXISTS "${QT_INSTALL_PATH}/bin/windeployqt.exe")
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+                COMMAND "${QT_INSTALL_PATH}/bin/windeployqt.exe"
+                --no-translations
+                "$<TARGET_FILE:${PROJECT_NAME}>"
+        )
+    else ()
+        message(WARNING "windeployqt.exe not found under ${QT_INSTALL_PATH}/bin")
     endif ()
 endif ()

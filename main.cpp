@@ -6,11 +6,11 @@
 #include <QSqlDatabase>
 #include <QIcon>
 #include <optional>
-
+#include "src/audio/sound_player.h"
 #include "src/model/timer.h"
 #include "src/view/timer_view.h"
 #include "src/persistence/session_repository.h"
-
+#include <QSettings>
 #include "src/view/theme.h"
 #include <QStyleHints>
 
@@ -92,11 +92,25 @@ int main(int argc, char* argv[])
         }
     }
 
-    constexpr qint64 duration_ms = 45 * 60 * 1000;
+    QSettings settings(QSettings::IniFormat, QSettings::UserScope,
+                       "DanielHernandez", "ProductivityTimer");
 
-    Timer timer(duration_ms);
+    const int start_minutes = Timer::snap_minutes(
+        settings.value("timer/duration_minutes", 45).toInt());
+
+
     Timer_View view;
 
+    productivity_timer::SoundSettings sound_settings;
+    sound_settings.done_enabled  = settings.value("sound/done_enabled", true).toBool();
+    sound_settings.done_volume   = settings.value("sound/done_volume", 70).toInt();
+    sound_settings.click_enabled = settings.value("sound/click_enabled", true).toBool();
+    sound_settings.click_volume  = settings.value("sound/click_volume", 60).toInt();
+
+    productivity_timer::SoundPlayer sounds;
+    sounds.apply(sound_settings);
+    view.set_sound_settings(sound_settings);
+    Timer timer(static_cast<qint64>(start_minutes) * 60 * 1000);
     struct CurrentTask
     {
         qint64 id;
@@ -109,6 +123,8 @@ int main(int argc, char* argv[])
         QDateTime started_at;
         QDateTime ended_at;
         int priority;
+        qint64 planned_ms;
+
     };
 
     std::optional<CurrentTask> current_task;
@@ -141,8 +157,8 @@ int main(int argc, char* argv[])
                 session->task_id,
                 session->started_at,
                 session->ended_at,
-                duration_ms,
-                duration_ms,
+                session->planned_ms,
+                session->planned_ms,
                 session->priority);
 
         if (!saved) {
@@ -255,7 +271,8 @@ int main(int argc, char* argv[])
                 current_task->id,
                 QDateTime::currentDateTimeUtc(),
                 QDateTime{},
-                priority
+                priority,
+                static_cast<qint64>(timer.duration_minutes()) * 60 * 1000
             };
 
             timer.start_timer();
@@ -306,6 +323,7 @@ int main(int argc, char* argv[])
         &Timer::finished,
         &view,
         [&]() {
+            sounds.play(productivity_timer::SoundKind::Done);
             if (!session) {
                 view.show_task_save_result(
                     false,
@@ -414,13 +432,58 @@ int main(int argc, char* argv[])
                 QString("Logged %1 min: %2")
                     .arg(minutes)
                     .arg(title.trimmed()));
+
+            sounds.play(productivity_timer::SoundKind::Click);
+
         });
 
 
 
     view.set_remaining_time(timer.remaining_ms());
     refresh_controls();
+    const auto push_duration = [&]() {
+        const int minutes = timer.duration_minutes();
+        view.set_duration_minutes(
+            minutes,
+            minutes - Timer::kStepMinutes >= Timer::kMinMinutes,
+            minutes + Timer::kStepMinutes <= Timer::kMaxMinutes);
+    };
+
+    QObject::connect(
+        &view, &Timer_View::duration_step_requested, &view,
+        [&](int direction) {
+            const int target =
+                timer.duration_minutes() + direction * Timer::kStepMinutes;
+
+            if (!timer.set_duration_minutes(target)) {
+                return;
+            }
+
+            settings.setValue("timer/duration_minutes",
+                              timer.duration_minutes());
+            push_duration();
+        });
+
+    QObject::connect(
+        &view, &Timer_View::sound_settings_changed, &view,
+        [&](const productivity_timer::SoundSettings& s) {
+            sounds.apply(s);
+            settings.setValue("sound/done_enabled", s.done_enabled);
+            settings.setValue("sound/done_volume", s.done_volume);
+            settings.setValue("sound/click_enabled", s.click_enabled);
+            settings.setValue("sound/click_volume", s.click_volume);
+        });
+
+    QObject::connect(
+        &view, &Timer_View::sound_test_requested, &view,
+        [&](productivity_timer::SoundKind kind) {
+            sounds.play_test(kind);
+        });
+
+    push_duration();
     view.show();
+
+
 
     return app.exec();
 }

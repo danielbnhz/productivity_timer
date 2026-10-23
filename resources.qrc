@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>resources/icons/timer_icon.png</file>
+        <file>resources/sounds/fantastical_app_arp.wav</file>
+        <file>resources/sounds/log_sound_effect.wav</file>
     </qresource>
 </RCC>

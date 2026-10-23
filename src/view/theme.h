@@ -120,6 +120,18 @@ QPushButton#rangeButton:checked:hover {
     background-color: #FFA047;
 }
 
+QCheckBox { spacing: 8px; }
+QCheckBox::indicator {
+    width: 18px; height: 18px;
+    border: 1px solid #2F5FA8; border-radius: 4px;
+    background: #16263F;
+}
+QCheckBox::indicator:checked { background: #FF8A1F; border-color: #FF8A1F; }
+QSlider::groove:horizontal { height: 6px; background: #1B2F4D; border-radius: 3px; }
+QSlider::sub-page:horizontal { background: #FF8A1F; border-radius: 3px; }
+QSlider::handle:horizontal {
+    background: #FF8A1F; width: 16px; margin: -6px 0; border-radius: 8px;
+}
 
 )");
     }

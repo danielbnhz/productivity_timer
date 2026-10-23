@@ -14,6 +14,14 @@ namespace productivity_timer
         Q_OBJECT
 
     public:
+
+        static constexpr int kMinMinutes = 5;
+        static constexpr int kStepMinutes = 20;
+        static constexpr int kMaxMinutes = 145;
+
+        [[nodiscard]] static int snap_minutes(int minutes);
+        [[nodiscard]] int duration_minutes() const;
+        bool set_duration_minutes(int minutes);
         enum class State {
             Ready,
             Running,

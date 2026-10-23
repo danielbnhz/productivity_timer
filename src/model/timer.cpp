@@ -116,5 +116,29 @@ void Timer::set_state(State state)
     m_state = state;
     emit state_changed(m_state);
 }
+    int Timer::snap_minutes(int minutes)
+{
+    const int clamped = std::clamp(minutes, kMinMinutes, kMaxMinutes);
+    const int steps = (clamped - kMinMinutes + kStepMinutes / 2) / kStepMinutes;
+    return kMinMinutes + steps * kStepMinutes;
+}
+
+    int Timer::duration_minutes() const
+{
+    return static_cast<int>(m_duration_ms / 60000);
+}
+
+    bool Timer::set_duration_minutes(int minutes)
+{
+    if (m_state != State::Ready) {
+        return false;
+    }
+
+    m_duration_ms = static_cast<qint64>(snap_minutes(minutes)) * 60 * 1000;
+    m_remaining_at_start_ms = m_duration_ms;
+    emit remaining_time_changed(m_remaining_at_start_ms);
+    return true;
+}
+
 
 }

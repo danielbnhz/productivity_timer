@@ -1,11 +1,14 @@
 #ifndef PRODUCTIVITY_TIMER_TIMER_VIEW_H
 #define PRODUCTIVITY_TIMER_TIMER_VIEW_H
 
+#include <QCheckBox>
 #include <QMainWindow>
 #include <QString>
 #include <QtGlobal>
 #include <QDateTime>
+#include <QSlider>
 
+#include "../audio/sound_settings.h"
 #include "../model/time_range.h"
 
 
@@ -50,6 +53,8 @@ public:
     bool has_task,
     bool session_in_progress,
     bool pending_save);
+    void set_duration_minutes(int minutes, bool can_decrease, bool can_increase);
+    void set_sound_settings(const productivity_timer::SoundSettings& settings);
 
     signals:
     void start_requested();
@@ -63,6 +68,10 @@ public:
                               const QString& title,
                               const QDateTime& started_at,
                               int minutes);
+    void duration_step_requested(int direction);
+    void sound_settings_changed(const productivity_timer::SoundSettings& settings);
+    void sound_test_requested(productivity_timer::SoundKind kind);
+
 
 private:
     QLabel* m_timer_label = nullptr;
@@ -90,6 +99,22 @@ private:
     QLabel* m_productive_hours_label = nullptr;
     QLabel* m_data_status_label = nullptr;
     QTableWidget* m_usage_table = nullptr;
+
+    QWidget* build_settings_page();
+    productivity_timer::SoundSettings current_sound_settings() const;
+    void update_duration_buttons();
+
+    QPushButton* m_duration_minus = nullptr;
+    QPushButton* m_duration_plus = nullptr;
+    QLabel* m_duration_label = nullptr;
+    bool m_duration_adjustable = true;
+    bool m_can_decrease = true;
+    bool m_can_increase = true;
+
+    QCheckBox* m_done_enabled = nullptr;
+    QSlider* m_done_volume = nullptr;
+    QCheckBox* m_click_enabled = nullptr;
+    QSlider* m_click_volume = nullptr;
 };
 
 #endif // PRODUCTIVITY_TIMER_TIMER_VIEW_H
