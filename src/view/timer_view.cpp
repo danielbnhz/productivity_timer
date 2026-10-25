@@ -103,7 +103,7 @@ Timer_View::Timer_View(QWidget* parent)
 
     m_task_title = new QLineEdit(central);
     m_task_title->setPlaceholderText(
-        "Example: Finish task database saving");
+        "Example: Study programming");
     layout->addWidget(m_task_title);
 
     layout->addWidget(new QLabel("Super task", central));
@@ -189,12 +189,6 @@ Timer_View::Timer_View(QWidget* parent)
                 }
             });
 
-    connect(tabs, &QTabWidget::currentChanged,
-            this, [this](int index) {
-                if (index == 1) {
-                    emit data_view_requested();
-                }
-            });
 
     connect(tabs, &QTabWidget::currentChanged,
             this, [this](int index) {

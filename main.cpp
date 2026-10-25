@@ -178,7 +178,7 @@ int main(int argc, char* argv[])
         current_task.reset();
 
         view.show_task_save_result(
-            false,
+            true,
             QString(
                 "Task %1 completed and session saved. "
                 "Save another task to begin.")
