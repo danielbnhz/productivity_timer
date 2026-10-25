@@ -412,6 +412,66 @@ Qt ideas that appear throughout: signals and slots (including lambda connections
 - Extract session orchestration from `main.cpp` into a controller, and add repository tests.
 
 ---
+## Architecture Review and Recommended Next Step
+
+### Current architecture
+
+The project already separates several major responsibilities:
+
+- **`Timer`** manages countdown state, elapsed-time measurement, pause/resume/reset behavior, and completion signals.
+- **`SessionRepository`** manages SQLite persistence, schema initialization, task creation, session logging, database transactions, and usage summaries.
+- **`Timer_View`** presents the interface and communicates user actions through signals.
+- **`SoundPlayer`** manages completion and click sound effects, including playback settings and volume levels.
+- **`main.cpp`** initializes the application and connects these components, but also contains much of the task/session workflow.
+
+This is a reasonable foundation. The main architectural opportunity is to reduce the amount of application workflow implemented directly in `main.cpp`.
+
+### Recommended improvement: introduce a session controller
+
+Create a controller under `src/controller/` to coordinate the lifecycle of a timed task session.
+
+The controller could take responsibility for:
+
+- Tracking the currently selected task and active session draft.
+- Starting, pausing, and resetting sessions in response to UI requests.
+- Obtaining the effective task priority and recording session timestamps.
+- Handling timer completion and requesting that the repository save the completed session.
+- Managing failed-save retries and preserving pending session data.
+- Coordinating completion feedback and sound playback.
+
+The existing components should retain their current responsibilities. `Timer` should continue to manage countdown mechanics; `SessionRepository` should continue to manage database operations; `Timer_View` should remain focused on presentation; and `SoundPlayer` should remain responsible for sound playback.
+
+After extraction, `main.cpp` should primarily initialize the application and its objects, load settings, construct the components, and connect them together. The controller would own the workflow that currently lives in the larger group of lambdas.
+
+This should be an incremental refactor rather than a rewrite. Extract the session lifecycle first, preserve existing behavior, build and test, and only then consider moving additional logic.
+
+### Additional implementation observations
+
+**Persistence and recovery:** The repository uses parameterized SQL queries, input validation, foreign-key enforcement, and transactions for multi-step writes. The timed-session workflow also retains failed saves in memory so they can be retried. That recovery mechanism does not guarantee survival across an application crash or restart.
+
+**Historical priority:** Completed sessions store an effective-priority snapshot. This allows historical productive-time calculations to use the priority recorded for each session rather than relying on a potentially changed default later.
+
+**Time handling:** Session timestamps are stored in UTC with millisecond precision. Usage summaries calculate local calendar boundaries for day, week, month, and year before converting the boundary to UTC.
+
+**Sound configuration:** `SoundPlayer` separates normal playback from explicit sound previews. Volume percentages are squared before being applied to `QSoundEffect`, producing a nonlinear volume mapping. This behavior should be preserved unless there is a deliberate reason to change it.
+
+**Validation opportunity:** `complete_task_session()` validates timestamp validity and duration bounds but does not explicitly reject an end timestamp earlier than the start timestamp. Adding chronological validation would strengthen the repository's input contract.
+
+**UI feedback opportunity:** Verify the meaning of the Boolean parameter passed to `Timer_View::show_task_save_result()`. The successful-save path currently passes `false` alongside a success message. If the parameter represents success, this is likely a feedback bug worth correcting.
+
+### Suggested implementation order
+
+1. Verify and correct the save-feedback Boolean if necessary.
+2. Update the README so its descriptions match the current implementation.
+3. Build the project and perform a brief end-to-end test of session completion, persistence, and usage totals.
+4. Commit these low-risk changes.
+5. Introduce the session controller in a separate commit, with a focused test or manual verification of the existing workflow.
+
+The goal is not to minimize the number of lines in `main.cpp` at any cost. It is to give each component a clear responsibility while keeping the application understandable and reliable.
+
+--------------
+
+
 
 ## License
 
