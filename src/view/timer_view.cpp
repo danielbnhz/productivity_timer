@@ -681,3 +681,12 @@ QWidget* Timer_View::build_settings_page()
     layout->addStretch();
     return page;
 }
+
+
+void Timer_View::show_calendar_sessions(
+    const QDate& day,
+    const QList<productivity_timer::SessionEntry>& sessions)
+{
+    m_session_timeline->set_day(day);
+    m_session_timeline->set_sessions(sessions);
+}

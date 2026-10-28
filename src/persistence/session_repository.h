@@ -38,6 +38,23 @@ namespace productivity_timer
         QList<ArchetypeUsage> by_archetype;
     };
 
+    struct SessionEntry
+    {
+        qint64 id = -1;
+        qint64 task_id = -1;
+
+        QString title;
+        QString archetype_name;
+
+        QDateTime started_at;
+        QDateTime ended_at;
+
+        qint64 planned_duration_ms = 0;
+        qint64 focused_duration_ms = 0;
+
+        int priority_snapshot = 0;
+    };
+
 
 
     class SessionRepository
@@ -67,6 +84,12 @@ namespace productivity_timer
             const QString& title,
             const QDateTime& started_at,
             qint64 duration_ms);
+
+        bool load_sessions_for_range(
+            const QDateTime& range_start,
+            const QDateTime& range_end,
+            QList<SessionEntry>& result
+        );
 
         qint64 session_count();
 

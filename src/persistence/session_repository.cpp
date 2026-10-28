@@ -881,4 +881,110 @@ bool SessionRepository::load_usage_summary(UsageSummary& result,
     return true;
 }
 
+
+bool SessionRepository::load_sessions_for_range(
+    const QDateTime& range_start,
+    const QDateTime& range_end,
+    QList<SessionEntry>& result)
+{
+    m_last_error.clear();
+    result.clear();
+
+    if (!range_start.isValid()
+        || !range_end.isValid()
+        || range_start >= range_end) {
+        m_last_error = "Invalid session query range.";
+        return false;
+    }
+
+    if (!database_is_ready()) {
+        return false;
+    }
+
+    const auto db =
+        QSqlDatabase::database(m_connection_name, false);
+
+    const QString start_text =
+        range_start.toUTC().toString(Qt::ISODateWithMs);
+
+    const QString end_text =
+        range_end.toUTC().toString(Qt::ISODateWithMs);
+
+    QSqlQuery query(db);
+
+    if (!query.prepare(R"SQL(
+        SELECT
+            s.id,
+            t.id,
+            t.title,
+            a.name,
+            s.started_at_utc,
+            s.ended_at_utc,
+            s.planned_duration_ms,
+            s.focused_duration_ms,
+            s.effective_priority_snapshot
+        FROM sessions AS s
+        JOIN tasks AS t
+            ON t.id = s.task_id
+        JOIN task_archetypes AS a
+            ON a.id = t.archetype_id
+        WHERE s.started_at_utc < :range_end
+          AND s.ended_at_utc > :range_start
+        ORDER BY s.started_at_utc, s.id
+    )SQL")) {
+        m_last_error = query.lastError().text();
+        return false;
+    }
+
+    query.bindValue(":range_start", start_text);
+    query.bindValue(":range_end", end_text);
+
+    if (!query.exec()) {
+        m_last_error = query.lastError().text();
+        return false;
+    }
+
+    while (query.next()) {
+        SessionEntry entry;
+
+        entry.id = query.value(0).toLongLong();
+        entry.task_id = query.value(1).toLongLong();
+        entry.title = query.value(2).toString();
+        entry.archetype_name = query.value(3).toString();
+
+        entry.started_at = QDateTime::fromString(
+            query.value(4).toString(), Qt::ISODateWithMs);
+
+        entry.ended_at = QDateTime::fromString(
+            query.value(5).toString(), Qt::ISODateWithMs);
+
+        entry.planned_duration_ms =
+            query.value(6).toLongLong();
+
+        entry.focused_duration_ms =
+            query.value(7).toLongLong();
+
+        entry.priority_snapshot =
+            query.value(8).toInt();
+
+        if (!entry.started_at.isValid()
+            || !entry.ended_at.isValid()) {
+            m_last_error = "A stored session has an invalid timestamp.";
+            result.clear();
+            return false;
+        }
+
+        result.append(entry);
+    }
+
+    if (query.lastError().isValid()) {
+        m_last_error = query.lastError().text();
+        result.clear();
+        return false;
+    }
+
+    return true;
+}
+
+
 }

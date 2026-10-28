@@ -14,9 +14,14 @@
 #include "src/view/theme.h"
 #include <QStyleHints>
 
+#include <QTime>
+#include<QTimeZone>
+
+
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <dwmapi.h>
+
 #endif
 
 namespace
@@ -437,7 +442,31 @@ int main(int argc, char* argv[])
 
         });
 
+    QObject::connect(
+        &view,
+        &Timer_View::calendar_date_requested,
+        &view,
+        [&repository, &view](const QDate& day)
+        {
+            const QDateTime range_start(
+                day, QTime(0, 0), QTimeZone::systemTimeZone());
 
+            const QDateTime range_end(
+                day.addDays(1),
+                QTime(0, 0),
+                QTimeZone::systemTimeZone());
+
+            QList<productivity_timer::SessionEntry> sessions;
+
+            if (!repository.load_sessions_for_range(
+                    range_start, range_end, sessions)) {
+                // Display repository.last_error() using your
+                // existing error-reporting pattern.
+                return;
+            }
+
+            view.show_calendar_sessions(day, sessions);
+        });
 
     view.set_remaining_time(timer.remaining_ms());
     refresh_controls();

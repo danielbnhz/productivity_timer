@@ -7,7 +7,11 @@
 #include <QtGlobal>
 #include <QDateTime>
 #include <QSlider>
-
+#include <QDate>
+#include <QList>
+#include "../persistence/session_repository.h"
+#include "session_timeline.h"
+#include <QCalendarWidget>
 #include "../audio/sound_settings.h"
 #include "../model/time_range.h"
 
@@ -55,6 +59,9 @@ public:
     bool pending_save);
     void set_duration_minutes(int minutes, bool can_decrease, bool can_increase);
     void set_sound_settings(const productivity_timer::SoundSettings& settings);
+    void show_calendar_sessions(
+    const QDate& day,
+    const QList<productivity_timer::SessionEntry>& sessions);
 
     signals:
     void start_requested();
@@ -68,6 +75,8 @@ public:
                               const QString& title,
                               const QDateTime& started_at,
                               int minutes);
+    void calendar_date_requested(const QDate& day);
+
     void duration_step_requested(int direction);
     void sound_settings_changed(const productivity_timer::SoundSettings& settings);
     void sound_test_requested(productivity_timer::SoundKind kind);
@@ -103,7 +112,8 @@ private:
     QWidget* build_settings_page();
     productivity_timer::SoundSettings current_sound_settings() const;
     void update_duration_buttons();
-
+    QCalendarWidget* m_calendar_widget = nullptr;
+    productivity_timer::SessionTimeline* m_session_timeline = nullptr;
     QPushButton* m_duration_minus = nullptr;
     QPushButton* m_duration_plus = nullptr;
     QLabel* m_duration_label = nullptr;

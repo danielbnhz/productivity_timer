@@ -29,6 +29,8 @@ add_executable(productivity_timer main.cpp
         src/audio/sound_settings.h
         src/audio/sound_player.h
         src/audio/sound_player.cpp
+        src/view/session_timeline.h
+        src/view/session_timeline.cpp
 )
 
 target_sources(productivity_timer PRIVATE resources.qrc)
