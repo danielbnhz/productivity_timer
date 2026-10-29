@@ -116,6 +116,8 @@ int main(int argc, char* argv[])
     sounds.apply(sound_settings);
     view.set_sound_settings(sound_settings);
     Timer timer(static_cast<qint64>(start_minutes) * 60 * 1000);
+    bool break_mode = false;
+    int work_duration_minutes = timer.duration_minutes();
     struct CurrentTask
     {
         qint64 id;
@@ -151,6 +153,73 @@ int main(int argc, char* argv[])
                 || state == Timer::State::Paused,
             pending_save);
     };
+
+    QObject::connect(
+    &view,
+    &Timer_View::break_mode_requested,
+    &view,
+    [&]() {
+        const Timer::State state = timer.state();
+
+        if (state == Timer::State::Running
+            || state == Timer::State::Paused
+            || pending_save) {
+            view.show_task_save_result(
+                false,
+                "Reset or finish the current session before changing modes.");
+            return;
+        }
+
+        session.reset();
+
+        break_mode = true;
+
+        timer.reset_timer();
+        timer.set_duration_minutes(5);
+
+        view.set_break_mode(true);
+        view.set_duration_minutes(
+            5,
+            false,
+            true);
+
+        refresh_controls();
+    });
+
+    QObject::connect(
+        &view,
+        &Timer_View::work_mode_requested,
+        &view,
+        [&]() {
+            const Timer::State state = timer.state();
+
+            if (state == Timer::State::Running
+                || state == Timer::State::Paused
+                || pending_save) {
+                view.show_task_save_result(
+                    false,
+                    "Reset or finish the current session before changing modes.");
+                return;
+            }
+
+            session.reset();
+            break_mode = false;
+
+            timer.reset_timer();
+            timer.set_duration_minutes(work_duration_minutes);
+
+            view.set_break_mode(false);
+
+
+            const int minutes = timer.duration_minutes();
+
+            view.set_duration_minutes(
+                minutes,
+                minutes - Timer::kStepMinutes >= Timer::kMinMinutes,
+                minutes + Timer::kStepMinutes <= Timer::kMaxMinutes);
+
+            refresh_controls();
+        });
 
     const auto save_completion = [&]() {
         if (!session || !pending_save) {
@@ -329,6 +398,14 @@ int main(int argc, char* argv[])
         &view,
         [&]() {
             sounds.play(productivity_timer::SoundKind::Done);
+            if (break_mode) {
+                view.show_task_save_result(
+                    true,
+                    "Break complete. Take a moment before returning to Work.");
+
+                refresh_controls();
+                return;
+            }
             if (!session) {
                 view.show_task_save_result(
                     false,

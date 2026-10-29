@@ -60,6 +60,29 @@ Timer_View::Timer_View(QWidget* parent)
     m_status_label = new QLabel("Ready", central);
     m_status_label->setObjectName("statusLabel");
 
+    m_work_mode_button = new QPushButton("Work", central);
+    m_break_mode_button = new QPushButton("Break", central);
+
+    m_work_mode_button->setCheckable(true);
+    m_break_mode_button->setCheckable(true);
+
+    m_work_mode_button->setObjectName("modeButton");
+    m_break_mode_button->setObjectName("modeButton");
+
+    auto* mode_layout = new QHBoxLayout;
+    mode_layout->addWidget(m_work_mode_button);
+    mode_layout->addWidget(m_break_mode_button);
+
+    layout->addLayout(mode_layout);
+
+    connect(m_work_mode_button, &QPushButton::clicked,
+            this, &Timer_View::work_mode_requested);
+
+    connect(m_break_mode_button, &QPushButton::clicked,
+            this, &Timer_View::break_mode_requested);
+
+
+
     m_duration_minus = new QPushButton("-20", central);
     m_duration_plus = new QPushButton("+20", central);
     m_duration_minus->setFocusPolicy(Qt::NoFocus);
@@ -203,6 +226,9 @@ Timer_View::Timer_View(QWidget* parent)
 
     set_controls(false, false, false);
 
+
+
+
     connect(m_start_button, &QPushButton::clicked,
             this, &Timer_View::start_requested);
 
@@ -211,7 +237,86 @@ Timer_View::Timer_View(QWidget* parent)
 
     connect(m_reset_button, &QPushButton::clicked,
             this, &Timer_View::reset_requested);
+
+
+    set_break_mode(false);
+
+
 }
+
+
+
+void Timer_View::set_break_mode(bool break_mode)
+{
+
+
+    m_is_break_mode = break_mode;
+
+    {
+        const QSignalBlocker work_blocker(m_work_mode_button);
+        const QSignalBlocker break_blocker(m_break_mode_button);
+
+        m_work_mode_button->setChecked(!break_mode);
+        m_break_mode_button->setChecked(break_mode);
+    }
+
+    m_work_mode_button->setText("Focus");
+
+    m_work_mode_button->setStyleSheet(
+        break_mode
+            ? QString{}
+            : "QPushButton { background-color: #FF8A1F;"
+              " color: #0F1B2D; border: 1px solid #FF8A1F;"
+              " font-weight: 700; }");
+
+    m_break_mode_button->setStyleSheet(
+        break_mode
+            ? "QPushButton { background-color: #FFFFFF;"
+              " color: #0F1B2D; border: 1px solid #FFFFFF;"
+              " font-weight: 700; }"
+            : QString{});
+
+    m_timer_label->setStyleSheet(
+        break_mode ? "color: #FFFFFF;" : QString{});
+
+    m_status_label->setText(
+        break_mode ? "Break — Ready" : "Focus — Ready");
+
+    if (break_mode) {
+        // Preserve the user's real task selection.
+        m_saved_task_title = m_task_title->text();
+        m_saved_archetype_id = m_archetype_combo->currentData();
+
+        // Display a temporary, non-database Break state.
+        m_current_task_label->setText("BREAK");
+        m_task_title->setText("BREAK");
+
+        const QSignalBlocker combo_blocker(m_archetype_combo);
+        m_archetype_combo->setCurrentIndex(
+            m_archetype_combo->findText("BREAK"));
+
+        m_task_title->setEnabled(false);
+        m_archetype_combo->setEnabled(false);
+        m_save_task_button->setEnabled(false);
+    } else {
+        // Restore the user's previous task-entry fields.
+        m_task_title->setText(m_saved_task_title);
+
+        const QSignalBlocker combo_blocker(m_archetype_combo);
+        const int index =
+            m_archetype_combo->findData(m_saved_archetype_id);
+
+        if (index >= 0) {
+            m_archetype_combo->setCurrentIndex(index);
+        }
+
+        m_current_task_label->setText("Current task: none");
+    }
+
+    update_task_save_enabled();
+}
+
+
 
 void Timer_View::set_remaining_time(qint64 remaining_ms)
 {
@@ -316,19 +421,23 @@ void Timer_View::show_task_save_result(
     bool session_in_progress,
     bool pending_save)
 {
-    m_current_task_label->setText(
-        has_task
-            ? QString("Current task: %1").arg(title)
-            : QString("Current task: none"));
+    if (m_is_break_mode) {
+        m_current_task_label->setText("BREAK");
+    } else {
+        m_current_task_label->setText(
+            has_task
+                ? QString("Current task: %1").arg(title)
+                : QString("Current task: none"));
+    }
 
     m_task_editable =
-        !session_in_progress && !pending_save;
+        !session_in_progress && !pending_save && !m_is_break_mode;
 
     m_task_title->setEnabled(m_task_editable);
     m_archetype_combo->setEnabled(m_task_editable);
     update_task_save_enabled();
 
-    if (!has_task) {
+    if (!has_task && !m_is_break_mode) {
         m_start_button->setEnabled(false);
     }
 

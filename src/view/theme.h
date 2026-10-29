@@ -110,6 +110,17 @@ QTableCornerButton::section {
 QPushButton#rangeButton {
     padding: 6px 10px;
 }
+
+QPushButton#modeButton:checked {
+    background-color: #FFFFFF;
+    border: none;
+    color: #0F1B2D;
+    font-weight: 700;
+}
+QPushButton#modeButton:checked:hover {
+    background-color: #E6EDF7;
+}
+
 QPushButton#rangeButton:checked {
     background-color: #FF8A1F;
     border: none;

@@ -41,6 +41,7 @@ public:
     void set_controls(bool running,
                       bool resumable,
                       bool finished);
+    void set_break_mode(bool break_mode);
     void clear_task_archetypes();
     void add_task_archetype(qint64 id, const QString& name);
 
@@ -92,6 +93,8 @@ signals:
     void sound_settings_changed(const productivity_timer::SoundSettings& settings);
     void sound_test_requested(productivity_timer::SoundKind kind);
     void category_add_requested(const QString& name);
+    void work_mode_requested();
+    void break_mode_requested();
 
 
 
@@ -124,7 +127,8 @@ private:
     QTableWidget* m_category_table = nullptr;
     QLineEdit* m_category_name_input = nullptr;
     QComboBox* m_category_priority_input = nullptr;
-
+    QString m_saved_task_title;
+    QVariant m_saved_archetype_id;
     QPushButton* m_add_category_button = nullptr;
     QPushButton* m_rename_category_button = nullptr;
     QPushButton* m_update_category_priority_button = nullptr;
@@ -140,11 +144,14 @@ private:
     bool m_duration_adjustable = true;
     bool m_can_decrease = true;
     bool m_can_increase = true;
-
+    QPushButton* m_work_mode_button = nullptr;
+    QPushButton* m_break_mode_button = nullptr;
+    bool m_is_break_mode = false;
     QCheckBox* m_done_enabled = nullptr;
     QSlider* m_done_volume = nullptr;
     QCheckBox* m_click_enabled = nullptr;
     QSlider* m_click_volume = nullptr;
+
 };
 
 #endif // PRODUCTIVITY_TIMER_TIMER_VIEW_H
