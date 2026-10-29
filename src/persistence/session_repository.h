@@ -22,6 +22,8 @@ namespace productivity_timer
     {
         qint64 id;
         QString name;
+        bool archived = false;
+        int default_priority = 1;
     };
 
     struct ArchetypeUsage
@@ -97,6 +99,15 @@ namespace productivity_timer
         [[nodiscard]] QString last_error() const;
 
         bool load_active_archetypes(QList<TaskArchetype>& result);
+        bool load_all_archetypes(QList<TaskArchetype>& result);
+
+        bool rename_archetype(qint64 archetype_id,
+                              const QString& new_name);
+
+        bool update_archetype_priority(qint64 archetype_id,
+                                       Priority default_priority);
+
+        bool archive_archetype(qint64 archetype_id);
 
         qint64 create_archetype(const QString& name,
                        Priority default_priority);

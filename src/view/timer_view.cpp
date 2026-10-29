@@ -22,7 +22,11 @@
 #include <QCheckBox>
 #include <QSlider>
 #include <QSignalBlocker>
-
+#include <QAbstractItemView>
+#include <QGroupBox>
+#include <QHBoxLayout>
+#include <QHeaderView>
+#include <QVBoxLayout>
 
 namespace
 {
@@ -678,6 +682,8 @@ QWidget* Timer_View::build_settings_page()
     connect(m_click_enabled, &QCheckBox::toggled, this, notify);
     connect(m_click_volume, &QSlider::valueChanged, this, notify);
 
+    build_category_settings(layout, page);
+
     layout->addStretch();
     return page;
 }
@@ -689,4 +695,92 @@ void Timer_View::show_calendar_sessions(
 {
     m_session_timeline->set_day(day);
     m_session_timeline->set_sessions(sessions);
+}
+
+
+
+void Timer_View::build_category_settings(
+    QVBoxLayout* layout,
+    QWidget* parent)
+{
+    auto* category_group =
+        new QGroupBox("Database Categories", parent);
+
+    auto* category_layout =
+        new QVBoxLayout(category_group);
+
+    m_category_table = new QTableWidget(category_group);
+    m_category_table->setColumnCount(2);
+    m_category_table->setHorizontalHeaderLabels(
+        {"Category", "Status"});
+
+    m_category_table->setSelectionBehavior(
+        QAbstractItemView::SelectRows);
+    m_category_table->setSelectionMode(
+        QAbstractItemView::SingleSelection);
+    m_category_table->setEditTriggers(
+        QAbstractItemView::NoEditTriggers);
+
+    m_category_table->horizontalHeader()
+        ->setSectionResizeMode(0, QHeaderView::Stretch);
+    m_category_table->horizontalHeader()
+        ->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+
+    category_layout->addWidget(m_category_table);
+
+    m_category_name_input =
+        new QLineEdit(category_group);
+    m_category_name_input->setPlaceholderText(
+        "Category name");
+
+    m_add_category_button =
+        new QPushButton("Add Category", category_group);
+
+    connect(m_add_category_button, &QPushButton::clicked,
+        this, [this]() {
+    emit category_add_requested(
+        m_category_name_input->text().trimmed());
+});
+
+    auto* input_layout = new QHBoxLayout;
+    input_layout->addWidget(m_category_name_input, 1);
+    input_layout->addWidget(m_add_category_button);
+
+    category_layout->addLayout(input_layout);
+
+    m_rename_category_button =
+        new QPushButton("Rename Selected", category_group);
+    m_archive_category_button =
+        new QPushButton("Archive Selected", category_group);
+
+    auto* action_layout = new QHBoxLayout;
+    action_layout->addWidget(m_rename_category_button);
+    action_layout->addWidget(m_archive_category_button);
+
+    category_layout->addLayout(action_layout);
+
+    layout->addWidget(category_group);
+}
+
+void Timer_View::add_category_row(
+    qint64 id,
+    const QString& name,
+    bool archived)
+{
+    const int row = m_category_table->rowCount();
+    m_category_table->insertRow(row);
+
+    auto* name_item = new QTableWidgetItem(name);
+    name_item->setData(Qt::UserRole, id);
+
+    auto* status_item = new QTableWidgetItem(
+        archived ? "Archived" : "Active");
+
+    m_category_table->setItem(row, 0, name_item);
+    m_category_table->setItem(row, 1, status_item);
+}
+
+void Timer_View::clear_category_rows()
+{
+    m_category_table->setRowCount(0);
 }

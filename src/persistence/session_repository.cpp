@@ -187,24 +187,50 @@ bool SessionRepository::initialize()
         return false;
     }
 
-    const auto db =
+    auto db =
         QSqlDatabase::database(m_connection_name, false);
+
+    if (!db.transaction()) {
+        m_last_error = db.lastError().text();
+        return false;
+    }
 
     QSqlQuery query(db);
 
-    if (!query.exec(R"SQL(
-        INSERT INTO task_archetypes (
-            name,
-            default_priority
-        )
-        VALUES
-            ('Programming', 2),
-            ('Music', 1),
-            ('Exercise', 2),
-            ('Botany/Game', 1)
-        ON CONFLICT(name) DO NOTHING
-    )SQL")) {
+    if (!query.exec(
+            "SELECT COUNT(*) FROM task_archetypes")) {
         m_last_error = query.lastError().text();
+        db.rollback();
+        return false;
+            }
+
+    if (!query.next()) {
+        m_last_error = "Could not count task categories.";
+        db.rollback();
+        return false;
+    }
+
+    const bool is_empty = query.value(0).toLongLong() == 0;
+    query.finish();
+
+    if (is_empty) {
+        if (!query.exec(R"SQL(
+            INSERT INTO task_archetypes (name, default_priority)
+            VALUES
+                ('Programming', 2),
+                ('Music', 1),
+                ('Exercise', 2),
+                ('Botany/Game', 1)
+        )SQL")) {
+            m_last_error = query.lastError().text();
+            db.rollback();
+            return false;
+        }
+    }
+
+    if (!db.commit()) {
+        m_last_error = db.lastError().text();
+        db.rollback();
         return false;
     }
 
@@ -286,7 +312,7 @@ QString SessionRepository::last_error() const
     QSqlQuery query(db);
 
     if (!query.exec(
-            "SELECT id, name "
+            "SELECT id, name , archived, default_priority "
             "FROM task_archetypes "
             "WHERE archived = 0 "
             "ORDER BY name COLLATE NOCASE, id")) {
@@ -297,7 +323,9 @@ QString SessionRepository::last_error() const
     while (query.next()) {
         result.append(TaskArchetype{
             query.value(0).toLongLong(),
-            query.value(1).toString()
+            query.value(1).toString(),
+            query.value(2).toInt() != 0,
+            query.value(3).toInt()
         });
     }
 
@@ -980,6 +1008,179 @@ bool SessionRepository::load_sessions_for_range(
     if (query.lastError().isValid()) {
         m_last_error = query.lastError().text();
         result.clear();
+        return false;
+    }
+
+    return true;
+}
+    bool SessionRepository::load_all_archetypes(
+        QList<TaskArchetype>& result)
+{
+    m_last_error.clear();
+    result.clear();
+
+    if (!database_is_ready()) {
+        return false;
+    }
+
+    const auto db =
+        QSqlDatabase::database(m_connection_name, false);
+
+    QSqlQuery query(db);
+
+    if (!query.exec(
+            "SELECT id, name , archived, default_priority "
+            "FROM task_archetypes "
+            "ORDER BY archived, name COLLATE NOCASE, id")) {
+        m_last_error = query.lastError().text();
+        return false;
+            }
+
+    while (query.next()) {
+        result.append(TaskArchetype{
+            query.value(0).toLongLong(),
+            query.value(1).toString()
+        });
+    }
+
+    if (query.lastError().isValid()) {
+        m_last_error = query.lastError().text();
+        result.clear();
+        return false;
+    }
+
+    return true;
+}
+
+
+    bool SessionRepository::rename_archetype(
+    qint64 archetype_id,
+    const QString& new_name)
+{
+    m_last_error.clear();
+
+    const QString clean_name = new_name.trimmed();
+
+    if (archetype_id <= 0 || clean_name.isEmpty()) {
+        m_last_error = "A valid category and non-empty name are required.";
+        return false;
+    }
+
+    if (!database_is_ready()) {
+        return false;
+    }
+
+    const auto db =
+        QSqlDatabase::database(m_connection_name, false);
+
+    QSqlQuery query(db);
+
+    if (!query.prepare(
+            "UPDATE task_archetypes "
+            "SET name = :name "
+            "WHERE id = :id")) {
+        m_last_error = query.lastError().text();
+        return false;
+            }
+
+    query.bindValue(":name", clean_name);
+    query.bindValue(":id", archetype_id);
+
+    if (!query.exec()) {
+        m_last_error = query.lastError().text();
+        return false;
+    }
+
+    if (query.numRowsAffected() != 1) {
+        m_last_error = "Category not found or name unchanged.";
+        return false;
+    }
+
+    return true;
+}
+
+    bool SessionRepository::update_archetype_priority(
+        qint64 archetype_id,
+        Priority default_priority)
+{
+    m_last_error.clear();
+
+    const int priority =
+        static_cast<int>(default_priority);
+
+    if (archetype_id <= 0 || priority < 0 || priority > 4) {
+        m_last_error = "Invalid category or priority.";
+        return false;
+    }
+
+    if (!database_is_ready()) {
+        return false;
+    }
+
+    const auto db =
+        QSqlDatabase::database(m_connection_name, false);
+
+    QSqlQuery query(db);
+
+    if (!query.prepare(
+            "UPDATE task_archetypes "
+            "SET default_priority = :priority "
+            "WHERE id = :id AND archived = 0")) {
+        m_last_error = query.lastError().text();
+        return false;
+            }
+
+    query.bindValue(":priority", priority);
+    query.bindValue(":id", archetype_id);
+
+    if (!query.exec()) {
+        m_last_error = query.lastError().text();
+        return false;
+    }
+
+    if (query.numRowsAffected() != 1) {
+        m_last_error = "Active category not found or priority unchanged.";
+        return false;
+    }
+
+    return true;
+}
+    bool SessionRepository::archive_archetype(
+        qint64 archetype_id)
+{
+    m_last_error.clear();
+
+    if (archetype_id <= 0) {
+        m_last_error = "Invalid category ID.";
+        return false;
+    }
+
+    if (!database_is_ready()) {
+        return false;
+    }
+
+    const auto db =
+        QSqlDatabase::database(m_connection_name, false);
+
+    QSqlQuery query(db);
+
+    if (!query.prepare(
+            "UPDATE task_archetypes "
+            "SET archived = 1 "
+            "WHERE id = :id AND archived = 0")) {
+        m_last_error = query.lastError().text();
+        return false;
+            }
+
+    query.bindValue(":id", archetype_id);
+
+    if (!query.exec()) {
+        m_last_error = query.lastError().text();
+        return false;
+    }
+
+    if (query.numRowsAffected() != 1) {
+        m_last_error = "Active category not found.";
         return false;
     }
 

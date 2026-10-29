@@ -14,7 +14,11 @@
 #include <QCalendarWidget>
 #include "../audio/sound_settings.h"
 #include "../model/time_range.h"
-
+#include <QTableWidget>
+#include <QLineEdit>
+#include <QComboBox>
+#include <QPushButton>
+#include <QVBoxLayout>
 
 class QLabel;
 class QPushButton;
@@ -62,8 +66,15 @@ public:
     void show_calendar_sessions(
     const QDate& day,
     const QList<productivity_timer::SessionEntry>& sessions);
+    void build_category_settings(QVBoxLayout* layout, QWidget* parent);
+    void add_category_row(
+            qint64 id,
+            const QString& name,
+            bool archived);
+    void clear_category_rows();
 
-    signals:
+
+signals:
     void start_requested();
     void pause_requested();
     void reset_requested();
@@ -80,6 +91,8 @@ public:
     void duration_step_requested(int direction);
     void sound_settings_changed(const productivity_timer::SoundSettings& settings);
     void sound_test_requested(productivity_timer::SoundKind kind);
+    void category_add_requested(const QString& name);
+
 
 
 private:
@@ -108,7 +121,14 @@ private:
     QLabel* m_productive_hours_label = nullptr;
     QLabel* m_data_status_label = nullptr;
     QTableWidget* m_usage_table = nullptr;
+    QTableWidget* m_category_table = nullptr;
+    QLineEdit* m_category_name_input = nullptr;
+    QComboBox* m_category_priority_input = nullptr;
 
+    QPushButton* m_add_category_button = nullptr;
+    QPushButton* m_rename_category_button = nullptr;
+    QPushButton* m_update_category_priority_button = nullptr;
+    QPushButton* m_archive_category_button = nullptr;
     QWidget* build_settings_page();
     productivity_timer::SoundSettings current_sound_settings() const;
     void update_duration_buttons();

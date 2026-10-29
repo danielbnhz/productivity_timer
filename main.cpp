@@ -345,9 +345,6 @@ int main(int argc, char* argv[])
 
     if (!database_ready) {
         view.show_task_save_result(false, startup_error);
-    } else if (!repository.ensure_starter_archetypes()) {
-        view.show_task_save_result(
-            false, repository.last_error());
     } else {
         QList<TaskArchetype> archetypes;
 
@@ -357,10 +354,18 @@ int main(int argc, char* argv[])
         } else {
             view.clear_task_archetypes();
 
+
+            view.clear_category_rows();
+
             for (const auto& archetype : archetypes) {
                 view.add_task_archetype(
                     archetype.id,
                     archetype.name);
+
+                view.add_category_row(
+                    archetype.id,
+                    archetype.name,
+                    false);
             }
 
             qDebug() << "Loaded active archetypes:"
@@ -369,7 +374,7 @@ int main(int argc, char* argv[])
             if (archetypes.isEmpty()) {
                 view.show_task_save_result(
                     false,
-                    "No active super tasks are available.");
+                    "No categories yet. Add categories in Settings.");
             }
         }
     }
@@ -460,8 +465,7 @@ int main(int argc, char* argv[])
 
             if (!repository.load_sessions_for_range(
                     range_start, range_end, sessions)) {
-                // Display repository.last_error() using your
-                // existing error-reporting pattern.
+
                 return;
             }
 
@@ -508,6 +512,49 @@ int main(int argc, char* argv[])
         [&](productivity_timer::SoundKind kind) {
             sounds.play_test(kind);
         });
+
+    QObject::connect(&view, &Timer_View::category_add_requested,
+                     &view, [&repository, &view](const QString& name) {
+    if (name.isEmpty()) {
+        view.show_task_save_result(false,
+                                   "Enter a category name.");
+        return;
+    }
+
+
+    const qint64 id = repository.create_archetype(
+        name, productivity_timer::Priority::Normal);
+
+    if (id < 0) {
+        view.show_task_save_result(
+            false, repository.last_error());
+        return;
+    }
+
+    QList<TaskArchetype> archetypes;
+
+    if (!repository.load_active_archetypes(archetypes)) {
+        view.show_task_save_result(
+            false, repository.last_error());
+        return;
+    }
+
+    view.clear_task_archetypes();
+    view.clear_category_rows();
+
+    for (const auto& archetype : archetypes) {
+        view.add_task_archetype(
+            archetype.id, archetype.name);
+
+        view.add_category_row(
+            archetype.id, archetype.name,
+            archetype.archived);
+    }
+
+    view.show_task_save_result(
+        true, "Category added successfully.");
+
+});
 
     push_duration();
     view.show();
