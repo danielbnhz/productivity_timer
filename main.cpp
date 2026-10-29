@@ -18,6 +18,8 @@
 #include <QTime>
 #include<QTimeZone>
 
+#include <QDebug>
+#include <QApplication>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -101,8 +103,18 @@ int main(int argc, char* argv[])
     QSettings settings(QSettings::IniFormat, QSettings::UserScope,
                        "DanielHernandez", "ProductivityTimer");
 
+    qDebug() << "Saved duration:"
+         << settings.value("timer/duration_minutes").toInt();
+
+    qDebug() << "Stored duration:"
+         << settings.value("timer/duration_minutes").toInt()
+         << "Setting exists:"
+         << settings.contains("timer/duration_minutes");
+
+
+
     const int start_minutes = Timer::snap_minutes(
-        settings.value("timer/duration_minutes", 45).toInt());
+        settings.value("timer/focus_duration_minutes", 45).toInt());
 
 
     Timer_View view;
@@ -117,8 +129,9 @@ int main(int argc, char* argv[])
     sounds.apply(sound_settings);
     view.set_sound_settings(sound_settings);
     Timer timer(static_cast<qint64>(start_minutes) * 60 * 1000);
+    view.set_duration_minutes(timer.duration_minutes(), true, true);
     bool break_mode = false;
-    int work_duration_minutes = timer.duration_minutes();
+
     struct CurrentTask
     {
         qint64 id;
@@ -207,7 +220,8 @@ int main(int argc, char* argv[])
             break_mode = false;
 
             timer.reset_timer();
-            timer.set_duration_minutes(work_duration_minutes);
+            timer.set_duration_minutes(45);
+
 
             view.set_break_mode(false);
 
@@ -325,6 +339,12 @@ int main(int argc, char* argv[])
                 return;
             }
 
+            if (break_mode) {
+                session.reset();
+                timer.start_timer();
+                return;
+            }
+
             if (!current_task) {
                 view.show_task_save_result(
                     false,
@@ -400,9 +420,17 @@ int main(int argc, char* argv[])
         [&]() {
             sounds.play(productivity_timer::SoundKind::Done);
             if (break_mode) {
+                break_mode = false;
+
+                timer.reset_timer();
+                timer.set_duration_minutes(45);
+
+                view.set_break_mode(false);
+                view.set_duration_minutes(45, false, true);
+
                 view.show_task_save_result(
                     true,
-                    "Break complete. Take a moment before returning to Work.");
+                    "Break complete. Ready to focus.");
 
                 refresh_controls();
                 return;
@@ -570,7 +598,7 @@ int main(int argc, char* argv[])
                 return;
             }
 
-            settings.setValue("timer/duration_minutes",
+            settings.setValue("timer/focus_duration_minutes",
                               timer.duration_minutes());
             push_duration();
         });
