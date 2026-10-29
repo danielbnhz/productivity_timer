@@ -27,7 +27,7 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QVBoxLayout>
-
+#include <QDebug>
 namespace
 {
     QString format_hours(qint64 milliseconds)
@@ -283,11 +283,11 @@ void Timer_View::set_break_mode(bool break_mode)
         break_mode ? "Break — Ready" : "Focus — Ready");
 
     if (break_mode) {
-        // Preserve the user's real task selection.
+
         m_saved_task_title = m_task_title->text();
         m_saved_archetype_id = m_archetype_combo->currentData();
 
-        // Display a temporary, non-database Break state.
+
         m_current_task_label->setText("BREAK");
         m_task_title->setText("BREAK");
 
@@ -299,7 +299,7 @@ void Timer_View::set_break_mode(bool break_mode)
         m_archetype_combo->setEnabled(false);
         m_save_task_button->setEnabled(false);
     } else {
-        // Restore the user's previous task-entry fields.
+
         m_task_title->setText(m_saved_task_title);
 
         const QSignalBlocker combo_blocker(m_archetype_combo);
@@ -851,6 +851,10 @@ void Timer_View::build_category_settings(
         m_category_name_input->text().trimmed());
 });
 
+
+
+
+
     auto* input_layout = new QHBoxLayout;
     input_layout->addWidget(m_category_name_input, 1);
     input_layout->addWidget(m_add_category_button);
@@ -859,6 +863,28 @@ void Timer_View::build_category_settings(
 
     m_rename_category_button =
         new QPushButton("Rename Selected", category_group);
+
+    connect(m_rename_category_button, &QPushButton::clicked,
+        this, [this]() {
+        const int row = m_category_table->currentRow();
+
+        if (row < 0) {
+            emit category_rename_requested(-1, QString{});
+            return;
+        }
+
+        const auto* item = m_category_table->item(row, 0);
+        if (!item) {
+            return;
+        }
+
+        const qint64 id = item->data(Qt::UserRole).toLongLong();
+        const QString old_name = item->text();
+
+        emit category_rename_requested(id, old_name);
+    });
+
+
     m_archive_category_button =
         new QPushButton("Archive Selected", category_group);
 

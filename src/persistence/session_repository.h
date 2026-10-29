@@ -101,8 +101,7 @@ namespace productivity_timer
         bool load_active_archetypes(QList<TaskArchetype>& result);
         bool load_all_archetypes(QList<TaskArchetype>& result);
 
-        bool rename_archetype(qint64 archetype_id,
-                              const QString& new_name);
+
 
         bool update_archetype_priority(qint64 archetype_id,
                                        Priority default_priority);
@@ -111,6 +110,8 @@ namespace productivity_timer
 
         qint64 create_archetype(const QString& name,
                        Priority default_priority);
+
+        bool rename_archetype(qint64 id, const QString& new_name);
 
         qint64 create_task(qint64 archetype_id,
                    const QString& title);

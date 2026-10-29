@@ -13,7 +13,8 @@
 #include <QSettings>
 #include "src/view/theme.h"
 #include <QStyleHints>
-
+#include <QInputDialog>
+#include <QLineEdit>
 #include <QTime>
 #include<QTimeZone>
 
@@ -632,6 +633,81 @@ int main(int argc, char* argv[])
         true, "Category added successfully.");
 
 });
+
+    QObject::connect(
+    &view, &Timer_View::category_rename_requested,
+    &view, [&repository, &view](qint64 id, const QString& old_name) {
+        if (id <= 0) {
+            view.show_task_save_result(
+                false, "Select a category to rename.");
+            return;
+        }
+
+        bool accepted = false;
+        const QString new_name = QInputDialog::getText(
+            &view,
+            "Rename Category",
+            "New category name:",
+            QLineEdit::Normal,
+            old_name,
+            &accepted
+        ).trimmed();
+
+        if (!accepted) {
+            return;
+        }
+
+        if (new_name.isEmpty()) {
+            view.show_task_save_result(
+                false, "Enter a category name.");
+            return;
+        }
+
+        // if (!repository.rename_archetype(id, new_name)) {
+        //     view.show_task_save_result(
+        //         false, repository.last_error());
+        //     return;
+        // }
+
+        const bool renamed =
+            repository.rename_archetype(id, new_name);
+
+        qDebug() << "Rename requested:"
+                 << "ID =" << id
+                 << "Old name =" << old_name
+                 << "New name =" << new_name
+                 << "Success =" << renamed
+                 << "Error =" << repository.last_error();
+
+        if (!renamed) {
+            view.show_task_save_result(
+                false, repository.last_error());
+            return;
+        }
+
+        QList<TaskArchetype> archetypes;
+
+        if (!repository.load_active_archetypes(archetypes)) {
+            view.show_task_save_result(
+                false, repository.last_error());
+            return;
+        }
+
+        view.clear_task_archetypes();
+        view.clear_category_rows();
+
+        for (const auto& archetype : archetypes) {
+            view.add_task_archetype(
+                archetype.id, archetype.name);
+
+            view.add_category_row(
+                archetype.id, archetype.name,
+                archetype.archived);
+        }
+
+        view.show_task_save_result(
+            true, "Category renamed successfully.");
+    });
 
     push_duration();
     view.show();

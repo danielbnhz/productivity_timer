@@ -95,7 +95,7 @@ signals:
     void category_add_requested(const QString& name);
     void work_mode_requested();
     void break_mode_requested();
-
+    void category_rename_requested(qint64 id, const QString& old_name);
 
 
 private:

@@ -384,6 +384,9 @@ QString SessionRepository::last_error() const
     return query.lastInsertId().toLongLong();
 }
 
+
+
+
     qint64 SessionRepository::create_task(
     qint64 archetype_id,
     const QString& title)
