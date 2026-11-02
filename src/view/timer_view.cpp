@@ -209,6 +209,12 @@ Timer_View::Timer_View(QWidget* parent)
         this,
         &Timer_View::scheduled_add_requested);
     m_tabs->addTab(m_scheduled_widget, "Scheduled");
+    connect(
+    m_scheduled_widget,
+    &ScheduledWidget::log_requested,
+    this,
+    &Timer_View::open_log_for_scheduled_task
+);
 
     m_tabs->addTab(build_settings_page(), "Settings");
 
@@ -689,7 +695,10 @@ QWidget* Timer_View::build_log_page()
                     archetype_id,
                     title,
                     m_log_start_edit->dateTime(),
-                    m_log_duration_spin->value());
+                    m_log_duration_spin->value(),
+                    m_pending_scheduled_id,
+                    m_pending_scheduled_recurring
+                );
             });
 
     update_log_enabled();
@@ -943,4 +952,29 @@ void Timer_View::set_scheduled_archetypes(
     const QList<productivity_timer::TaskArchetype>& archetypes)
 {
     m_scheduled_widget->set_archetypes(archetypes);
+}
+
+void Timer_View::open_log_for_scheduled_task(
+    const ScheduledTask& task)
+{
+
+    m_pending_scheduled_id = task.id;
+    m_pending_scheduled_recurring = task.recurring;
+    const int index = m_log_archetype_combo->findData(
+        QVariant::fromValue(task.archetype_id)
+    );
+
+    if (index < 0)
+    {
+        show_log_result(
+            false,
+            "The scheduled activity's super task is unavailable."
+        );
+        return;
+    }
+
+    m_log_title->setText(task.title);
+    m_log_archetype_combo->setCurrentIndex(index);
+
+    m_tabs->setCurrentIndex(2);
 }

@@ -554,9 +554,11 @@ int main(int argc, char* argv[])
         &Timer_View::manual_log_requested,
         &view,
         [&](qint64 archetype_id,
-            const QString& title,
-            const QDateTime& started_at,
-            int minutes) {
+        const QString& title,
+        const QDateTime& started_at,
+        int minutes,
+        qint64 scheduled_id,
+        bool scheduled_recurring) {
             const qint64 duration_ms =
                 static_cast<qint64>(minutes) * 60 * 1000;
 
@@ -564,6 +566,25 @@ int main(int argc, char* argv[])
                     archetype_id, title, started_at, duration_ms)) {
                 view.show_log_result(false, repository.last_error());
                 return;
+            }
+
+
+            if (scheduled_id >= 0 && !scheduled_recurring)
+            {
+                if (scheduled_repository.delete_task(scheduled_id))
+                {
+                    QList<ScheduledTask> tasks;
+
+                    if (scheduled_repository.load_tasks(tasks))
+                    {
+                        view.set_scheduled_tasks(tasks);
+                    }
+                }
+                else
+                {
+                    qWarning() << "Could not delete scheduled entry:"
+                               << scheduled_repository.last_error();
+                }
             }
 
             view.show_log_result(

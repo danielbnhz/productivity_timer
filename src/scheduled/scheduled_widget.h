@@ -33,7 +33,7 @@ public:
 
     signals:
     void launch_requested(qint64 scheduled_id);
-    void log_requested(qint64 scheduled_id);
+    void log_requested(const ScheduledTask& task);
 
     void add_requested(qint64 archetype_id,
                        const QString& title,

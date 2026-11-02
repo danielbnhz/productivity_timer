@@ -13,6 +13,7 @@
 #include <QLabel>
 #include "scheduled_task_dialog.h"
 
+
 ScheduledWidget::ScheduledWidget(QWidget* parent)
     : QWidget(parent)
 {
@@ -55,7 +56,38 @@ void ScheduledWidget::set_tasks(
     const QList<ScheduledTask>& tasks)
 {
     m_tasks = tasks;
-    refresh_list();
+    m_task_list->clear();
+
+    for (const auto& task : m_tasks)
+    {
+        auto* item = new QListWidgetItem(m_task_list);
+        auto* row = new QWidget(m_task_list);
+        auto* layout = new QHBoxLayout(row);
+
+        layout->setContentsMargins(6, 3, 6, 3);
+
+        QString display_text = task.title;
+
+        if (task.recurring)
+        {
+            display_text += " [Recurring]";
+        }
+
+        auto* label = new QLabel(display_text, row);
+        auto* log_button = new QPushButton("Log", row);
+
+        layout->addWidget(label, 1);
+        layout->addWidget(log_button);
+
+        item->setSizeHint(row->sizeHint());
+        m_task_list->setItemWidget(item, row);
+
+        connect(log_button, &QPushButton::clicked,
+                this, [this, task]()
+        {
+            emit log_requested(task);
+        });
+    }
 }
 
 void ScheduledWidget::refresh_list()

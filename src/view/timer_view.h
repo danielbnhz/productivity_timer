@@ -83,6 +83,9 @@ public:
     );
 
 
+    void open_log_for_scheduled_task(
+    const ScheduledTask& task
+    );
 signals:
     void start_requested();
     void pause_requested();
@@ -91,10 +94,14 @@ signals:
                          const QString& title);
     void data_view_requested();
     void time_range_changed(productivity_timer::TimeRange range);
-    void manual_log_requested(qint64 archetype_id,
-                              const QString& title,
-                              const QDateTime& started_at,
-                              int minutes);
+    void manual_log_requested(
+        qint64 archetype_id,
+        const QString& title,
+        const QDateTime& started_at,
+        int minutes,
+        qint64 scheduled_id,
+        bool scheduled_recurring
+    );
     void calendar_date_requested(const QDate& day);
 
     void duration_step_requested(int direction);
@@ -166,6 +173,8 @@ private:
     QSlider* m_click_volume = nullptr;
     QTabWidget* m_tabs = nullptr;
     ScheduledWidget* m_scheduled_widget = nullptr;
+    qint64 m_pending_scheduled_id = -1;
+    bool m_pending_scheduled_recurring = false;
 
 };
 
