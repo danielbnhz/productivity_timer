@@ -17,7 +17,7 @@
 #include <QLineEdit>
 #include <QTime>
 #include<QTimeZone>
-
+#include "src/scheduled/scheduled_task_repository.h"
 #include <QDebug>
 #include <QApplication>
 
@@ -80,6 +80,15 @@ int main(int argc, char* argv[])
     SessionRepository repository;
     const bool database_ready = repository.initialize();
 
+    ScheduledTaskRepository scheduled_repository(
+    repository.database_path()
+    );
+
+    if (!scheduled_repository.initialize())
+    {
+        qWarning() << scheduled_repository.last_error();
+    }
+
     QString startup_error;
 
     if (!database_ready) {
@@ -118,6 +127,20 @@ int main(int argc, char* argv[])
 
 
     Timer_View view;
+    QList<TaskArchetype> archetypes;
+
+    if (database_ready)
+    {
+        repository.load_active_archetypes(archetypes);
+        view.set_scheduled_archetypes(archetypes);
+    }
+
+    QList<ScheduledTask> scheduled_tasks;
+
+    if (scheduled_repository.load_tasks(scheduled_tasks))
+    {
+        view.set_scheduled_tasks(scheduled_tasks);
+    }
 
     productivity_timer::SoundSettings sound_settings;
     sound_settings.done_enabled  = settings.value("sound/done_enabled", true).toBool();
@@ -691,11 +714,7 @@ int main(int argc, char* argv[])
             return;
         }
 
-        // if (!repository.rename_archetype(id, new_name)) {
-        //     view.show_task_save_result(
-        //         false, repository.last_error());
-        //     return;
-        // }
+
 
         const bool renamed =
             repository.rename_archetype(id, new_name);
@@ -736,6 +755,36 @@ int main(int argc, char* argv[])
         view.show_task_save_result(
             true, "Category renamed successfully.");
     });
+
+    QObject::connect(
+        &view,
+        &Timer_View::scheduled_add_requested,
+        &view,
+        [&](qint64 archetype_id,
+            const QString& title,
+            bool recurring)
+        {
+            const qint64 new_id = scheduled_repository.add_task(
+                archetype_id,
+                title,
+                recurring
+            );
+
+            if (new_id < 0)
+            {
+                qWarning() << "Scheduled task save failed:"
+                           << scheduled_repository.last_error();
+                return;
+            }
+
+            QList<ScheduledTask> tasks;
+
+            if (scheduled_repository.load_tasks(tasks))
+            {
+                view.set_scheduled_tasks(tasks);
+            }
+        }
+    );
 
     push_duration();
     view.show();

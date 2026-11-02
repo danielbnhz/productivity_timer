@@ -31,6 +31,13 @@ add_executable(productivity_timer main.cpp
         src/audio/sound_player.cpp
         src/view/session_timeline.h
         src/view/session_timeline.cpp
+        src/scheduled/scheduled_task_repository.cpp
+        src/scheduled/scheduled_task_repository.h
+        src/scheduled/scheduled_task.h
+        src/scheduled/scheduled_widget.cpp
+        src/scheduled/scheduled_widget.h
+        src/scheduled/scheduled_task_dialog.h
+        src/scheduled/scheduled_task_dialog.cpp
 )
 
 target_sources(productivity_timer PRIVATE resources.qrc)

@@ -28,6 +28,9 @@
 #include <QHeaderView>
 #include <QVBoxLayout>
 #include <QDebug>
+#include "../scheduled/scheduled_widget.h"
+
+
 namespace
 {
     QString format_hours(qint64 milliseconds)
@@ -194,19 +197,29 @@ Timer_View::Timer_View(QWidget* parent)
 
     update_task_save_enabled();
 
-    auto* tabs = new QTabWidget(this);
-    tabs->addTab(central, "Timer");
-    tabs->addTab(build_data_page(), "Data");
-    tabs->addTab(build_log_page(), "Log");
-    tabs->addTab(build_settings_page(), "Settings");
-    setCentralWidget(tabs);
+    m_tabs = new QTabWidget(this);
+
+    m_tabs->addTab(central, "Timer");
+    m_tabs->addTab(build_data_page(), "Data");
+    m_tabs->addTab(build_log_page(), "Log");
+
+    m_scheduled_widget = new ScheduledWidget(this);
+    connect(m_scheduled_widget,
+        &ScheduledWidget::add_requested,
+        this,
+        &Timer_View::scheduled_add_requested);
+    m_tabs->addTab(m_scheduled_widget, "Scheduled");
+
+    m_tabs->addTab(build_settings_page(), "Settings");
+
+    setCentralWidget(m_tabs);
 
     auto* space_shortcut =
     new QShortcut(QKeySequence(Qt::Key_Space), this);
 
     connect(space_shortcut, &QShortcut::activated, this,
-            [this, tabs]() {
-                if (tabs->currentIndex() != 0) {
+            [this]() {
+                if (m_tabs->currentIndex() != 0) {
                     return;
                 }
                 if (m_pause_button->isEnabled()) {
@@ -217,7 +230,7 @@ Timer_View::Timer_View(QWidget* parent)
             });
 
 
-    connect(tabs, &QTabWidget::currentChanged,
+    connect(m_tabs, &QTabWidget::currentChanged,
             this, [this](int index) {
                 if (index == 1) {
                     emit data_view_requested();
@@ -918,4 +931,16 @@ void Timer_View::add_category_row(
 void Timer_View::clear_category_rows()
 {
     m_category_table->setRowCount(0);
+}
+
+void Timer_View::set_scheduled_tasks(
+    const QList<ScheduledTask>& tasks)
+{
+    m_scheduled_widget->set_tasks(tasks);
+}
+
+void Timer_View::set_scheduled_archetypes(
+    const QList<productivity_timer::TaskArchetype>& archetypes)
+{
+    m_scheduled_widget->set_archetypes(archetypes);
 }

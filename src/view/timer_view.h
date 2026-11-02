@@ -19,6 +19,9 @@
 #include <QComboBox>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include "../scheduled/scheduled_task.h"
+#include <QList>
+#include "../persistence/session_repository.h"
 
 class QLabel;
 class QPushButton;
@@ -28,6 +31,7 @@ class QDateTimeEdit;
 class QSpinBox;
 class QTabWidget;
 class QTableWidget;
+class ScheduledWidget;
 
 class Timer_View : public QMainWindow
 {
@@ -73,6 +77,10 @@ public:
             const QString& name,
             bool archived);
     void clear_category_rows();
+    void set_scheduled_tasks(const QList<ScheduledTask>& tasks);
+    void set_scheduled_archetypes(
+        const QList<productivity_timer::TaskArchetype>& archetypes
+    );
 
 
 signals:
@@ -96,6 +104,11 @@ signals:
     void work_mode_requested();
     void break_mode_requested();
     void category_rename_requested(qint64 id, const QString& old_name);
+    void scheduled_add_requested(
+    qint64 archetype_id,
+    const QString& title,
+    bool recurring
+);
 
 
 private:
@@ -151,6 +164,8 @@ private:
     QSlider* m_done_volume = nullptr;
     QCheckBox* m_click_enabled = nullptr;
     QSlider* m_click_volume = nullptr;
+    QTabWidget* m_tabs = nullptr;
+    ScheduledWidget* m_scheduled_widget = nullptr;
 
 };
 
