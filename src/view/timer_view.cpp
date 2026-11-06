@@ -29,7 +29,9 @@
 #include <QVBoxLayout>
 #include <QDebug>
 #include "../scheduled/scheduled_widget.h"
-
+#include <QVBoxLayout>
+#include <QLabel>
+#include "trend_chart.h"
 
 namespace
 {
@@ -217,6 +219,7 @@ Timer_View::Timer_View(QWidget* parent)
 );
 
     m_tabs->addTab(build_settings_page(), "Settings");
+    build_trends_page();
 
     setCentralWidget(m_tabs);
 
@@ -235,11 +238,14 @@ Timer_View::Timer_View(QWidget* parent)
                 }
             });
 
-
     connect(m_tabs, &QTabWidget::currentChanged,
             this, [this](int index) {
                 if (index == 1) {
                     emit data_view_requested();
+                }
+
+                if (index == 5) {
+                    emit trends_view_requested();
                 }
             });
 
@@ -978,3 +984,84 @@ void Timer_View::open_log_for_scheduled_task(
 
     m_tabs->setCurrentIndex(2);
 }
+
+void Timer_View::build_trends_page()
+{
+    QWidget* page = new QWidget(this);
+    auto* layout = new QVBoxLayout(page);
+
+    auto* heading = new QLabel("Productivity Trends", page);
+    heading->setStyleSheet(
+        "font-size: 20px;"
+        "font-weight: bold;"
+    );
+
+    auto* description = new QLabel(
+        "Daily focused time over the last seven days.",
+        page
+    );
+
+    m_trend_chart = new productivity_timer::TrendChart(page);
+
+    // Range selection buttons
+    auto* button_layout = new QHBoxLayout();
+
+    m_trend_range_group = new QButtonGroup(this);
+    m_trend_range_group->setExclusive(true);
+
+    m_trend_7_days_button = new QPushButton("7 Days", page);
+    m_trend_4_weeks_button = new QPushButton("4 Weeks", page);
+    m_trend_12_months_button = new QPushButton("12 Months", page);
+
+    m_trend_7_days_button->setCheckable(true);
+    m_trend_4_weeks_button->setCheckable(true);
+    m_trend_12_months_button->setCheckable(true);
+
+    m_trend_range_group->addButton(m_trend_7_days_button);
+    m_trend_range_group->addButton(m_trend_4_weeks_button);
+    m_trend_range_group->addButton(m_trend_12_months_button);
+
+    m_trend_7_days_button->setChecked(true);
+
+    button_layout->addStretch();
+    button_layout->addWidget(m_trend_7_days_button);
+    button_layout->addWidget(m_trend_4_weeks_button);
+    button_layout->addWidget(m_trend_12_months_button);
+    button_layout->addStretch();
+
+
+    connect(m_trend_7_days_button, &QPushButton::clicked,
+            this, [this]() {
+        emit trend_range_changed(TrendRange::Days7);
+    });
+
+    connect(m_trend_4_weeks_button, &QPushButton::clicked,
+            this, [this]() {
+        emit trend_range_changed(TrendRange::Weeks4);
+    });
+
+    connect(m_trend_12_months_button, &QPushButton::clicked,
+            this, [this]() {
+        emit trend_range_changed(TrendRange::Months12);
+    });
+
+
+
+    layout->addWidget(heading);
+    layout->addWidget(description);
+    layout->addWidget(m_trend_chart, 1);
+    layout->addLayout(button_layout);
+
+    m_tabs->addTab(page, "Trends");
+}
+
+void Timer_View::set_trend_points(
+    const QList<productivity_timer::TrendPoint>& points
+)
+{
+    if (m_trend_chart)
+    {
+        m_trend_chart->set_points(points);
+    }
+}
+

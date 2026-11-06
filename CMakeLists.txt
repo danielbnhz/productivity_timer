@@ -38,6 +38,11 @@ add_executable(productivity_timer main.cpp
         src/scheduled/scheduled_widget.h
         src/scheduled/scheduled_task_dialog.h
         src/scheduled/scheduled_task_dialog.cpp
+        src/model/trend_point.h
+        src/controller/trend_controller.cpp
+        src/controller/trend_controller.h
+        src/view/trend_chart.h
+        src/view/trend_chart.cpp
 )
 
 target_sources(productivity_timer PRIVATE resources.qrc)

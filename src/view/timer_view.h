@@ -22,6 +22,8 @@
 #include "../scheduled/scheduled_task.h"
 #include <QList>
 #include "../persistence/session_repository.h"
+#include "../model/trend_point.h"
+#include "trend_chart.h"
 
 class QLabel;
 class QPushButton;
@@ -32,6 +34,7 @@ class QSpinBox;
 class QTabWidget;
 class QTableWidget;
 class ScheduledWidget;
+class QButtonGroup;
 
 class Timer_View : public QMainWindow
 {
@@ -86,6 +89,18 @@ public:
     void open_log_for_scheduled_task(
     const ScheduledTask& task
     );
+
+    void set_trend_points(
+    const QList<productivity_timer::TrendPoint>& points
+    );
+
+    enum class TrendRange
+    {
+        Days7,
+        Weeks4,
+        Months12
+    };
+
 signals:
     void start_requested();
     void pause_requested();
@@ -114,8 +129,10 @@ signals:
     void scheduled_add_requested(
     qint64 archetype_id,
     const QString& title,
-    bool recurring
-);
+    bool recurring);
+    void trends_view_requested();
+    void trend_range_changed(TrendRange range);
+
 
 
 private:
@@ -175,6 +192,14 @@ private:
     ScheduledWidget* m_scheduled_widget = nullptr;
     qint64 m_pending_scheduled_id = -1;
     bool m_pending_scheduled_recurring = false;
+    void build_trends_page();
+    productivity_timer::TrendChart* m_trend_chart = nullptr;
+    QButtonGroup* m_trend_range_group = nullptr;
+
+    QPushButton* m_trend_7_days_button = nullptr;
+    QPushButton* m_trend_4_weeks_button = nullptr;
+    QPushButton* m_trend_12_months_button = nullptr;
+
 
 };
 

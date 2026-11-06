@@ -20,6 +20,8 @@
 #include "src/scheduled/scheduled_task_repository.h"
 #include <QDebug>
 #include <QApplication>
+#include "src/controller/trend_controller.h"
+
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -88,7 +90,7 @@ int main(int argc, char* argv[])
     {
         qWarning() << scheduled_repository.last_error();
     }
-
+    productivity_timer::TrendController trend_controller(repository);
     QString startup_error;
 
     if (!database_ready) {
@@ -189,6 +191,41 @@ int main(int argc, char* argv[])
             state == Timer::State::Running
                 || state == Timer::State::Paused,
             pending_save);
+    };
+
+    Timer_View::TrendRange trend_range =
+    Timer_View::TrendRange::Days7;
+
+    auto refresh_trends = [&]() {
+
+        const QDate today = QDate::currentDate();
+
+        QDate start_date;
+
+        switch (trend_range)
+        {
+        case Timer_View::TrendRange::Days7:
+            start_date = today.addDays(-6);
+            break;
+
+        case Timer_View::TrendRange::Weeks4:
+            start_date = today.addDays(-27);
+            break;
+
+        case Timer_View::TrendRange::Months12:
+            // Monthly aggregation will be implemented later.
+            return;
+        }
+
+        QList<productivity_timer::TrendPoint> points;
+
+        if (trend_controller.load_daily_trends(
+                start_date,
+                today,
+                points))
+        {
+            view.set_trend_points(points);
+        }
     };
 
     QObject::connect(
@@ -806,6 +843,25 @@ int main(int argc, char* argv[])
             }
         }
     );
+
+    QObject::connect(
+    &view,
+    &Timer_View::trends_view_requested,
+    &view,
+    refresh_trends
+);
+
+    QObject::connect(
+        &view,
+        &Timer_View::trend_range_changed,
+        &view,
+        [&](Timer_View::TrendRange range) {
+
+            trend_range = range;
+            refresh_trends();
+        }
+    );
+
 
     push_duration();
     view.show();
