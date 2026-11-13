@@ -100,6 +100,10 @@ public:
         Weeks4,
         Months12
     };
+    void show_timer_tab()
+    {
+         m_tabs->setCurrentIndex(0);
+    }
 
 signals:
     void start_requested();

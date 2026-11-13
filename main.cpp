@@ -878,6 +878,8 @@ int main(int argc, char* argv[])
                 if (task.id == id)
                 {
                     view.set_task_title(task.title);
+                    view.show_timer_tab();
+
                     break;
                 }
             }
