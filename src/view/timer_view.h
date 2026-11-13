@@ -85,7 +85,7 @@ public:
         const QList<productivity_timer::TaskArchetype>& archetypes
     );
 
-
+    void set_task_title(const QString& title);
     void open_log_for_scheduled_task(
     const ScheduledTask& task
     );
@@ -132,6 +132,8 @@ signals:
     bool recurring);
     void trends_view_requested();
     void trend_range_changed(TrendRange range);
+    void scheduled_launch_requested(qint64 scheduled_id);
+    void scheduled_delete_requested(qint64 scheduled_id);
 
 
 

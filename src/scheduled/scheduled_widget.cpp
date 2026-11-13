@@ -69,27 +69,40 @@ void ScheduledWidget::set_tasks(
         QString display_text = task.title;
 
         if (task.recurring)
-        {
             display_text += " [Recurring]";
-        }
 
         auto* label = new QLabel(display_text, row);
+        auto* ready_button = new QPushButton("Ready", row);
         auto* log_button = new QPushButton("Log", row);
+        auto* delete_button = new QPushButton("Delete", row);
 
         layout->addWidget(label, 1);
+        layout->addWidget(ready_button);
         layout->addWidget(log_button);
+        layout->addWidget(delete_button);
 
         item->setSizeHint(row->sizeHint());
         m_task_list->setItemWidget(item, row);
+
+        connect(ready_button, &QPushButton::clicked,
+                this, [this, task]()
+        {
+            emit launch_requested(task.id);
+        });
 
         connect(log_button, &QPushButton::clicked,
                 this, [this, task]()
         {
             emit log_requested(task);
         });
+
+        connect(delete_button, &QPushButton::clicked,
+                this, [this, task]()
+        {
+            emit delete_requested(task.id);
+        });
     }
 }
-
 void ScheduledWidget::refresh_list()
 {
     m_task_list->clear();

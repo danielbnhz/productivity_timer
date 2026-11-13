@@ -843,13 +843,53 @@ int main(int argc, char* argv[])
             }
         }
     );
+    QObject::connect(
+        &view,
+        &Timer_View::scheduled_delete_requested,
+        &view,
+        [&](qint64 id)
+        {
+            if (!scheduled_repository.delete_task(id))
+            {
+                qWarning() << scheduled_repository.last_error();
+                return;
+            }
+
+            QList<ScheduledTask> tasks;
+
+            if (scheduled_repository.load_tasks(tasks))
+                view.set_scheduled_tasks(tasks);
+        }
+    );
+
+    QObject::connect(
+        &view,
+        &Timer_View::scheduled_launch_requested,
+        &view,
+        [&](qint64 id)
+        {
+            QList<ScheduledTask> tasks;
+
+            if (!scheduled_repository.load_tasks(tasks))
+                return;
+
+            for (const ScheduledTask& task : tasks)
+            {
+                if (task.id == id)
+                {
+                    view.set_task_title(task.title);
+                    break;
+                }
+            }
+        }
+    );
 
     QObject::connect(
     &view,
     &Timer_View::trends_view_requested,
     &view,
     refresh_trends
-);
+    );
 
     QObject::connect(
         &view,

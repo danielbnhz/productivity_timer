@@ -216,7 +216,18 @@ Timer_View::Timer_View(QWidget* parent)
     &ScheduledWidget::log_requested,
     this,
     &Timer_View::open_log_for_scheduled_task
-);
+    );
+
+    connect(m_scheduled_widget,
+        &ScheduledWidget::launch_requested,
+        this,
+        &Timer_View::scheduled_launch_requested);
+
+    connect(m_scheduled_widget,
+            &ScheduledWidget::delete_requested,
+            this,
+            &Timer_View::scheduled_delete_requested);
+
 
     m_tabs->addTab(build_settings_page(), "Settings");
     build_trends_page();
@@ -1072,3 +1083,8 @@ void Timer_View::set_trend_points(
     }
 }
 
+void Timer_View::set_task_title(const QString& title)
+{
+    m_task_title->setText(title);
+    update_task_save_enabled();
+}
