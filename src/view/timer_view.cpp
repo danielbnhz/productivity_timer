@@ -263,6 +263,13 @@ Timer_View::Timer_View(QWidget* parent)
     connect(m_reset_button, &QPushButton::clicked,
             this, &Timer_View::reset_requested);
 
+    connect(m_task_title, &QLineEdit::returnPressed,
+        this, [this]() {
+            if (!m_task_title->text().trimmed().isEmpty()) {
+                m_save_task_button->click();
+            }
+        });
+
 
     set_break_mode(false);
 
