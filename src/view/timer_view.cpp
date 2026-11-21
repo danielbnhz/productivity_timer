@@ -672,6 +672,29 @@ QWidget* Timer_View::build_log_page()
     m_log_button->setObjectName("startButton");  // reuse orange style
     layout->addWidget(m_log_button);
 
+
+    // Enter submits the form while the Log page is active.
+    auto* enter_shortcut = new QShortcut(
+        QKeySequence(Qt::Key_Return),
+        page
+    );
+
+    enter_shortcut->setContext(Qt::WidgetWithChildrenShortcut);
+
+    connect(enter_shortcut, &QShortcut::activated,
+            m_log_button, &QPushButton::click);
+
+    // Also support Enter on the numeric keypad.
+    auto* keypad_enter_shortcut = new QShortcut(
+        QKeySequence(Qt::Key_Enter),
+        page
+    );
+
+    keypad_enter_shortcut->setContext(Qt::WidgetWithChildrenShortcut);
+
+    connect(keypad_enter_shortcut, &QShortcut::activated,
+            m_log_button, &QPushButton::click);
+
     m_log_feedback_label = new QLabel(page);
     m_log_feedback_label->setWordWrap(true);
     layout->addWidget(m_log_feedback_label);
