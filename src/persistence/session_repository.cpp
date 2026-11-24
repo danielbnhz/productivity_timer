@@ -298,7 +298,7 @@ QString SessionRepository::last_error() const
 }
     bool SessionRepository::load_active_archetypes(
         QList<TaskArchetype>& result)
-{
+    {
     m_last_error.clear();
     result.clear();
 
@@ -336,11 +336,11 @@ QString SessionRepository::last_error() const
     }
 
     return true;
-}
+    }
     qint64 SessionRepository::create_archetype(
         const QString& name,
         Priority default_priority)
-{
+    {
     m_last_error.clear();
 
     const QString clean_name = name.trimmed();
@@ -382,7 +382,7 @@ QString SessionRepository::last_error() const
     }
 
     return query.lastInsertId().toLongLong();
-}
+    }
 
 
 
@@ -390,7 +390,7 @@ QString SessionRepository::last_error() const
     qint64 SessionRepository::create_task(
     qint64 archetype_id,
     const QString& title)
-{
+    {
     m_last_error.clear();
 
     const QString clean_title = title.trimmed();
@@ -422,7 +422,7 @@ QString SessionRepository::last_error() const
     )SQL")) {
         m_last_error = query.lastError().text();
         return -1;
-    }
+        }
 
     query.bindValue(":archetype_id", archetype_id);
     query.bindValue(":title", clean_title);
@@ -443,11 +443,11 @@ QString SessionRepository::last_error() const
     }
 
     return query.lastInsertId().toLongLong();
-}
+    }
     bool SessionRepository::task_priority(
     qint64 task_id,
     int& priority)
-{
+    {
     m_last_error.clear();
 
     if (!database_is_ready()) {
@@ -496,7 +496,7 @@ QString SessionRepository::last_error() const
     }
 
     return true;
-}
+    }
     bool SessionRepository::complete_task_session(
     qint64 task_id,
     const QDateTime& started_at,
@@ -504,7 +504,7 @@ QString SessionRepository::last_error() const
     qint64 planned_duration_ms,
     qint64 focused_duration_ms,
     int priority_snapshot)
-{
+    {
     m_last_error.clear();
 
     if (!started_at.isValid()
@@ -614,7 +614,7 @@ QString SessionRepository::last_error() const
     }
 
     return true;
-}
+    }
 bool SessionRepository::log_manual_session(
     qint64 archetype_id,
     const QString& title,

@@ -89,7 +89,7 @@ qint64 ScheduledTaskRepository::add_task(
     qint64 archetype_id,
     const QString& title,
     bool recurring)
-{
+    {
     const QString clean_title = title.trimmed();
 
     if (archetype_id < 1 || clean_title.isEmpty())
@@ -119,7 +119,7 @@ qint64 ScheduledTaskRepository::add_task(
 
     m_last_error.clear();
     return query.lastInsertId().toLongLong();
-}
+    }
 
 bool ScheduledTaskRepository::load_tasks(
     QList<ScheduledTask>& tasks)
