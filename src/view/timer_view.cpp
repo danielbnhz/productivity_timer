@@ -1030,19 +1030,19 @@ void Timer_View::build_trends_page()
 {
     QWidget* page = new QWidget(this);
     auto* layout = new QVBoxLayout(page);
-
     auto* heading = new QLabel("Productivity Trends", page);
     heading->setStyleSheet(
         "font-size: 20px;"
         "font-weight: bold;"
     );
 
-    auto* description = new QLabel(
-        "Daily focused time over the last seven days.",
+    m_trend_description = new QLabel(
+        "Focused time over the last 7 days.",
         page
     );
 
     m_trend_chart = new productivity_timer::TrendChart(page);
+
 
     // Range selection buttons
     auto* button_layout = new QHBoxLayout();
@@ -1057,7 +1057,7 @@ void Timer_View::build_trends_page()
     m_trend_7_days_button->setCheckable(true);
     m_trend_4_weeks_button->setCheckable(true);
     m_trend_12_months_button->setCheckable(true);
-
+    m_trend_7_days_button->setChecked(true);
     m_trend_range_group->addButton(m_trend_7_days_button);
     m_trend_range_group->addButton(m_trend_4_weeks_button);
     m_trend_range_group->addButton(m_trend_12_months_button);
@@ -1073,23 +1073,34 @@ void Timer_View::build_trends_page()
 
     connect(m_trend_7_days_button, &QPushButton::clicked,
             this, [this]() {
+        m_trend_description->setText(
+            "Focused time over the last 7 days."
+        );
+
         emit trend_range_changed(TrendRange::Days7);
     });
 
     connect(m_trend_4_weeks_button, &QPushButton::clicked,
             this, [this]() {
+        m_trend_description->setText(
+            "Focused time over the last 4 weeks."
+        );
+
         emit trend_range_changed(TrendRange::Weeks4);
     });
 
     connect(m_trend_12_months_button, &QPushButton::clicked,
             this, [this]() {
+        m_trend_description->setText(
+            "Focused time over the last 12 months."
+        );
+
         emit trend_range_changed(TrendRange::Months12);
     });
 
 
-
     layout->addWidget(heading);
-    layout->addWidget(description);
+    layout->addWidget(m_trend_description);
     layout->addWidget(m_trend_chart, 1);
     layout->addLayout(button_layout);
 

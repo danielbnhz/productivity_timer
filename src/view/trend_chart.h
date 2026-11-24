@@ -22,7 +22,7 @@ namespace productivity_timer
 
     private:
         QList<TrendPoint> m_points;
-        productivity_timer::TrendChart* m_trend_chart = nullptr;
+
 
     };
 }

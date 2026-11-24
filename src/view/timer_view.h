@@ -104,6 +104,7 @@ public:
     {
          m_tabs->setCurrentIndex(0);
     }
+    QLabel* m_trend_description = nullptr;
 
 signals:
     void start_requested();
