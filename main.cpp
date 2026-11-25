@@ -21,7 +21,7 @@
 #include <QDebug>
 #include <QApplication>
 #include "src/controller/trend_controller.h"
-
+#include <QWindow>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -318,6 +318,10 @@ int main(int argc, char* argv[])
 
             refresh_controls();
             return;
+        }
+
+        if (auto* window = view.windowHandle()) {
+            window->alert(0);
         }
 
         const qint64 saved_task_id = session->task_id;
