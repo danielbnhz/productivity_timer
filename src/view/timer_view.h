@@ -93,6 +93,7 @@ public:
     void set_trend_points(
     const QList<productivity_timer::TrendPoint>& points
     );
+    void remove_task_archetype(qint64 id);
 
     enum class TrendRange
     {
@@ -105,6 +106,7 @@ public:
          m_tabs->setCurrentIndex(0);
     }
     QLabel* m_trend_description = nullptr;
+
 
 signals:
     void start_requested();
@@ -139,8 +141,7 @@ signals:
     void trend_range_changed(TrendRange range);
     void scheduled_launch_requested(qint64 scheduled_id);
     void scheduled_delete_requested(qint64 scheduled_id);
-
-
+    void category_delete_requested(qint64 archetype_id);
 
 private:
     QLabel* m_timer_label = nullptr;
@@ -202,7 +203,7 @@ private:
     void build_trends_page();
     productivity_timer::TrendChart* m_trend_chart = nullptr;
     QButtonGroup* m_trend_range_group = nullptr;
-
+    QPushButton* m_delete_category_button = nullptr;
     QPushButton* m_trend_7_days_button = nullptr;
     QPushButton* m_trend_4_weeks_button = nullptr;
     QPushButton* m_trend_12_months_button = nullptr;

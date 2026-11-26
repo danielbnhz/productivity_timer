@@ -22,7 +22,7 @@
 #include <QApplication>
 #include "src/controller/trend_controller.h"
 #include <QWindow>
-
+#include <QMessageBox>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <dwmapi.h>
@@ -817,6 +817,68 @@ int main(int argc, char* argv[])
         view.show_task_save_result(
             true, "Category renamed successfully.");
     });
+
+    QObject::connect(
+    &view,
+    &Timer_View::category_delete_requested,
+    &view,
+    [&repository, &view](qint64 id) {
+
+        if (id <= 0) {
+            view.show_task_save_result(
+                false, "Select a category to delete.");
+            return;
+        }
+
+        const auto answer = QMessageBox::question(
+            &view,
+            "Delete Category",
+            "Are you sure you want to delete this category?",
+            QMessageBox::Yes | QMessageBox::No,
+            QMessageBox::No
+        );
+
+        if (answer != QMessageBox::Yes) {
+            return;
+        }
+
+        const bool deleted = repository.delete_archetype(id);
+
+        qDebug() << "Delete requested:"
+                 << "ID =" << id
+                 << "Success =" << deleted
+                 << "Error =" << repository.last_error();
+
+        if (!deleted) {
+            view.show_task_save_result(
+                false, repository.last_error());
+            return;
+        }
+
+        QList<TaskArchetype> archetypes;
+
+        if (!repository.load_active_archetypes(archetypes)) {
+            view.show_task_save_result(
+                false, repository.last_error());
+            return;
+        }
+
+        view.clear_task_archetypes();
+        view.clear_category_rows();
+
+        for (const auto& archetype : archetypes) {
+            view.add_task_archetype(
+                archetype.id, archetype.name);
+
+            view.add_category_row(
+                archetype.id, archetype.name,
+                archetype.archived);
+        }
+
+        view.show_task_save_result(
+            true, "Category deleted successfully.");
+        }
+    );
 
     QObject::connect(
         &view,

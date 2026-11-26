@@ -918,7 +918,7 @@ void Timer_View::build_category_settings(
         this, [this]() {
     emit category_add_requested(
         m_category_name_input->text().trimmed());
-});
+    });
 
 
 
@@ -957,10 +957,33 @@ void Timer_View::build_category_settings(
     m_archive_category_button =
         new QPushButton("Archive Selected", category_group);
 
+
+    m_delete_category_button =
+    new QPushButton("Delete Category", category_group);
+
+    connect(m_delete_category_button, &QPushButton::clicked,
+        this, [this]() {
+            const int row = m_category_table->currentRow();
+
+            if (row < 0) {
+                return;
+            }
+
+            const auto* item = m_category_table->item(row, 0);
+            if (!item) {
+                return;
+            }
+
+            const qint64 id =
+                item->data(Qt::UserRole).toLongLong();
+
+            emit category_delete_requested(id);
+        });
+
     auto* action_layout = new QHBoxLayout;
     action_layout->addWidget(m_rename_category_button);
     action_layout->addWidget(m_archive_category_button);
-
+    action_layout->addWidget(m_delete_category_button);
     category_layout->addLayout(action_layout);
 
     layout->addWidget(category_group);
@@ -1120,5 +1143,26 @@ void Timer_View::set_trend_points(
 void Timer_View::set_task_title(const QString& title)
 {
     m_task_title->setText(title);
+    update_task_save_enabled();
+}
+
+void Timer_View::remove_task_archetype(qint64 id)
+{
+    const int timer_index =
+        m_archetype_combo->findData(QVariant::fromValue(id));
+
+    if (timer_index >= 0) {
+        m_archetype_combo->removeItem(timer_index);
+    }
+
+    if (m_log_archetype_combo) {
+        const int log_index =
+            m_log_archetype_combo->findData(QVariant::fromValue(id));
+
+        if (log_index >= 0) {
+            m_log_archetype_combo->removeItem(log_index);
+        }
+    }
+
     update_task_save_enabled();
 }

@@ -1190,5 +1190,52 @@ bool SessionRepository::load_sessions_for_range(
     return true;
 }
 
+    bool SessionRepository::delete_archetype(qint64 archetype_id)
+{
+    m_last_error.clear();
+
+    if (archetype_id <= 0) {
+        m_last_error = "A valid category ID is required.";
+        return false;
+    }
+
+    if (!database_is_ready()) {
+        return false;
+    }
+
+    const auto db =
+        QSqlDatabase::database(m_connection_name, false);
+
+    QSqlQuery query(db);
+
+    if (!query.prepare(R"SQL(
+        DELETE FROM task_archetypes
+        WHERE id = :id
+        AND NOT EXISTS (
+            SELECT 1
+            FROM tasks
+            WHERE tasks.archetype_id = task_archetypes.id
+        )
+    )SQL")) {
+        m_last_error = query.lastError().text();
+        return false;
+    }
+
+    query.bindValue(":id", archetype_id);
+
+    if (!query.exec()) {
+        m_last_error = query.lastError().text();
+        return false;
+    }
+
+    if (query.numRowsAffected() != 1) {
+        m_last_error =
+            "Category does not exist or still has associated tasks.";
+        return false;
+    }
+
+    return true;
+}
+
 
 }

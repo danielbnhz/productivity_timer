@@ -112,6 +112,7 @@ namespace productivity_timer
                        Priority default_priority);
 
         bool rename_archetype(qint64 id, const QString& new_name);
+        bool delete_archetype(qint64 archetype_id);
 
         qint64 create_task(qint64 archetype_id,
                    const QString& title);
