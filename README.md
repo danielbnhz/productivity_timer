@@ -1,79 +1,142 @@
 # Productivity Timer
 
-A personal productivity tracking application built with **C++20, Qt 6 Widgets, and SQLite**. The project combines a focus timer with task organization, manual session logging, productivity summaries, and a visual calendar for reviewing work sessions.
+A personal productivity tracking application built with **C++20, Qt 6 Widgets, and SQLite**. The application combines focus timing, task organization, scheduled work, manual session logging, productivity analysis, and historical activity review.
 
-The goal is to build a practical, extensible tool for tracking focused work over time, with an architecture that can eventually support an Android port.
+Designed as a local-first productivity system, the project emphasizes persistent session tracking, reusable application logic, and a modular architecture that can support future expansion and an eventual Android implementation.
 
-## Current Features
+## Features
 
 ### ⏱️ Timer and Session Tracking
+
 - Focus timer for recording productive work sessions.
 - Task and task-archetype organization.
-- Session persistence in a local SQLite database.
-- Recording of planned duration, focused duration, and effective priority snapshots.
-- Manual session logging for work completed outside the active timer.
+- Configurable task priorities ranging from 0 to 4.
+- Persistent session recording through SQLite.
+- Tracking of planned duration and actual focused duration.
+- Priority snapshots captured when sessions are recorded.
+- Break periods excluded from productive session calculations.
+- Task-completion feedback through visual window and taskbar notifications.
+- Keyboard-oriented timer interactions for efficient session management.
 
-### 📅 Calendar and Session Timeline
-- Calendar-based navigation for reviewing sessions by date.
-- A daily timeline that visualizes sessions against the hours of the day.
-- Session blocks positioned according to their start and end times.
-- Sessions crossing midnight can be clipped to the selected day's boundaries for display without changing their stored timestamps.
-- A foundation for identifying overlapping sessions and improving time-allocation decisions.
+Productivity scoring uses focused duration multiplied by the priority captured for the session:
 
-The calendar is intended to make historical activity easier to inspect visually, rather than relying exclusively on numerical summaries.
+`Productivity Score = Focused Duration × Priority Snapshot`
+
+Capturing priority at session time preserves historical scoring even when task priorities are subsequently changed.
+
+### 📋 Task Organization and Scheduling
+
+The application separates tasks into archetypes and individual task entries.
+
+- Organize tasks by category and archetype.
+- Assign individual priority levels.
+- Maintain scheduled tasks independently of active timer sessions.
+- Transition ready scheduled tasks into the timer workflow.
+- Persist task and scheduling information locally.
+
+This organization provides a foundation for planning future work while maintaining a historical record of completed sessions.
+
+### 📅 Calendar and Session History
+
+Calendar-based navigation provides a way to inspect previously recorded activity.
+
+- Navigate historical sessions by date.
+- View daily activity through a visual timeline.
+- Display session blocks according to their recorded start and end times.
+- Account for sessions crossing midnight when displaying daily activity.
+- Preserve original timestamps when clipping sessions to calendar boundaries.
+
+The calendar provides a visual representation of time allocation beyond numerical productivity summaries.
 
 ### 📊 Productivity Data
-- Data summaries organized by day, week, month, year, and all-time periods.
-- Productivity calculations based on focused duration and the priority captured for each session.
-- A foundation for future trend analysis and historical comparisons.
 
-### 🔊 Custom Sound Effects
-The application includes configurable audio feedback for timer completion and session logging.
+The Data view provides historical productivity information derived from recorded sessions.
+
+- Review accumulated productivity statistics.
+- Examine focused work across different reporting periods.
+- Calculate productivity using recorded duration and priority snapshots.
+- Support historical comparisons and future trend analysis.
+
+The application is being developed toward more comprehensive productivity visualization and trend reporting.
+
+### 🔊 Custom Audio Feedback
+
+The application includes configurable sound effects for important timer events.
 
 - **Completion sound:** `fantastical_app_arp.wav`
 - **Logging sound:** `log_sound_effect.wav`
-- Independent enable/disable settings for each sound.
-- Independent volume settings for each sound.
-- Volume scaling that squares the normalized percentage, providing finer control at lower volume levels.
-- Playback through Qt's `QSoundEffect`, with sound assets loaded from the Qt resource system.
+- Independent enable/disable settings.
+- Independent volume controls.
+- Squared volume scaling for finer adjustment at lower levels.
+- Audio playback through Qt's `QSoundEffect`.
+- Sound assets loaded through the Qt resource system.
 
-The logging sound uses a custom-designed, retro digital/typewriter-style effect, giving session logging a distinct auditory cue.
+The logging sound uses a custom retro digital/typewriter-inspired effect, providing a distinct auditory confirmation when recording sessions.
 
-### ⚙️ Persistence and Configuration
-- SQLite for persistent task and session data.
+### ⚙️ Settings and Persistence
+
+- Local SQLite database for persistent application data.
 - Qt settings support for application preferences.
-- Repository-based database operations, keeping persistence logic separate from the user interface.
-- Session timestamps stored in UTC to support consistent time comparisons.
+- Configurable audio feedback.
+- Database operations separated from interface logic through repository-based persistence.
+- Session timestamps stored in UTC for consistent time comparisons.
+- Structured task, archetype, and session data.
+
+The application is designed to retain productivity history locally without requiring an external service.
+
+## Application Structure
+
+The interface is organized into five primary views:
+
+| View | Responsibility |
+|---|---|
+| Timer | Active focus sessions and task selection |
+| Data | Productivity summaries and historical statistics |
+| Log | Manual session recording |
+| Scheduled | Future work and scheduled task management |
+| Settings | Application preferences and configuration |
 
 ## Technology Stack
 
 - **Language:** C++20
-- **GUI:** Qt 6 Widgets
-- **Database:** SQLite through Qt SQL
-- **Build system:** CMake
-- **Development environment:** CLion with MinGW on Windows
+- **GUI Framework:** Qt 6 Widgets
+- **Database:** SQLite
+- **Database Integration:** Qt SQL
+- **Build System:** CMake
+- **Audio:** Qt Multimedia / QSoundEffect
+- **Development Environment:** CLion
+- **Primary Platform:** Windows (MinGW)
 
-## Project Direction
+## Architecture and Design Principles
 
-The application is being developed incrementally, with an emphasis on practical features and reusable logic.
+The project emphasizes modularity and separation of concerns.
 
-Planned areas of development include:
+- **Local-first architecture:** Productivity records are stored locally using SQLite.
+- **Repository-based persistence:** Database operations are separated from presentation logic.
+- **Separation of concerns:** Timer behavior, interface components, persistence, and reusable logic are maintained as distinct responsibilities.
+- **Historical consistency:** Priority snapshots and UTC timestamps preserve the context of recorded sessions.
+- **Reusable components:** Application logic is structured with future platform expansion in mind.
+- **Incremental development:** Features are introduced while maintaining existing application behavior.
 
-- **Trends tab:** Visualize productivity patterns and changes over time.
-- **Overlap detection:** Identify conflicting session intervals and warn the user without unnecessarily preventing manual logging.
-- **Expanded calendar views:** Extend daily inspection toward weekly scheduling and review.
-- **Android port:** Reuse suitable domain logic in a Kotlin-based implementation.
+## Development Roadmap
 
-The longer-term objective is a personal productivity system that makes it easier to record work, understand time allocation, and make informed decisions about future sessions.
+Potential areas of continued development include:
 
-## Design Principles
+- Expanded productivity trend visualization.
+- More comprehensive historical comparisons.
+- Session overlap detection and conflict warnings.
+- Expanded calendar and scheduling functionality.
+- Category management and archival workflows.
+- Improved task and session organization.
+- Android implementation using Kotlin and Jetpack Compose.
+- Greater reuse of application-domain logic across platforms.
 
-- **Local-first persistence:** Keep productivity records in a local database.
-- **Separation of concerns:** Keep UI, timer behavior, persistence, and reusable time-interval logic distinct.
-- **Useful feedback:** Make important actions perceptible through visual and audio cues.
-- **Incremental development:** Add features without destabilizing existing timer and logging behavior.
-- **Cross-platform potential:** Prefer reusable business logic where practical.
+## Project Status
 
-## Status
+The Productivity Timer has evolved from a basic countdown application into a multi-view productivity tracking system.
 
-The project has progressed beyond a basic countdown timer into a multi-view productivity tracking application, with persistent session data, configurable sound effects, productivity summaries, and calendar-based session visualization. Development is ongoing, with trend analysis and expanded scheduling functionality among the next goals.
+It currently incorporates persistent task management, scheduled work, manual session logging, configurable audio feedback, historical session review, and priority-weighted productivity calculations.
+
+Development continues with an emphasis on improving the application's analytical capabilities, expanding task management, and establishing a foundation for cross-platform development.
+
+The long-term objective is to create a practical productivity system that not only records focused work but also helps users understand how their time is allocated and make better decisions about future activities.
